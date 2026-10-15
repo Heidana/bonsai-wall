@@ -4,6 +4,8 @@ Oct 15, 2026 · @Gergő
 
 ## How to use this doc
 
+> **Precedence.** `docs/DEVIATIONS.md` takes precedence over this spec wherever the two conflict. Every newly approved deviation updates this spec in the same commit as `DEVIATIONS.md`, so the two do not drift. Each edit below carries its deviation id (D1, D2, ...).
+
 Export this doc as Markdown and commit it to the V1 repo as `docs/BONSAI_V2_SPEC.md`; the agent treats it as the source of truth. Paste the kickoff prompt (next section) as the agent's first message.
 
 The agent works in phases and stops at three review gates: V1 inventory + plan, first free-growth contact sheet, and style/species parity. Numbers in this spec are tuning starting points, not botanical measurements; the agent may change them but must log every change with its reason in `docs/TUNING.md`.
@@ -37,7 +39,7 @@ V2 changes how the tree is made, not what the wallpaper is: every V1 feature sur
 | Goal | How it is measured |
 | --- | --- |
 | Organic structure: taper, branch hierarchy, ramification, inner thinning and droop emerge from simulation, not templates | Realism metrics (Validation section) inside their bands for ≥ 90% of seeds |
-| Real seed-to-seed variety, the main complaint about V1 | Median pairwise structure distance per species × style ≥ 1.5 × V1's measured baseline |
+| Real seed-to-seed variety, the main complaint about V1 | Median pairwise mirror-canonical structure distance per species × style ≥ 1.5 × V1's measured baseline, capped per combo at the cross-style ceiling (Validation; D8) |
 | Every V1 architecture reads as itself, including V1's known misses: windswept reading as slanting, corkscrew literati trunks, rounded larch forests, cascades hitting the stand, no inner thinning, thick apex | Style acceptance bands, ≥ 90% of 50 seeds per combo |
 | Full V1 parity | Parity table (next section) all green at Gate 3 |
 | V1-class cost | End-to-end p50 ≤ 4 s, p95 ≤ 8 s at 3840×2160 on one core; GIF size and changed pixels per frame ≤ V1 + 25%; palette ≤ 255 colours |
@@ -47,7 +49,7 @@ Non-goals: botanical detail that cannot show at \~360 art rows; root-system simu
 | Hard constraint | Rule |
 | --- | --- |
 | Separation | `biology` knows species and environment, never style. `maintainer` knows style and acts only through `actions`. Enforced by an import-boundary test and read-only arrays. |
-| Dependencies | Pillow + numpy at runtime, nothing else. The Python floor may rise from V1's 3.8 to 3.10 if needed; document it. |
+| Dependencies | Pillow + numpy at runtime, nothing else. Python floor 3.10 (V1 was 3.8). numpy is a new runtime dependency and must be listed in the README and packaging (D11). |
 | Determinism | Same seed + engine version + args → byte-identical GIF on the same machine. |
 | Distribution | Single executable built with zipapp; same `install -Dm755` command as V1. |
 | V1 retained | `--engine v1` reproduces V1 seeds until removal is approved. |
@@ -62,11 +64,11 @@ V1 today: `choose_look()` (colours, own RNG stream) → `grow_scene(seed, w, h, 
 
 | Area | V1 behaviour (verify in Phase 0) | V2 requirement |
 | --- | --- | --- |
-| Species | Japanese maple, Japanese black and white pine, Shimpaku juniper, Japanese zelkova, dawn redwood, Japanese larch | One biology profile each (Species section); V1 species weights kept |
+| Species | Japanese maple, Japanese black and white pine (V1 has one `pinus` species; the profile follows the leaf key, see Species profiles; D1), Shimpaku juniper, Japanese zelkova, dawn redwood, Japanese larch | One biology profile each (Species section); V1 species weights kept |
 | Architectures | Chokkan, moyogi, slanting, fukinagashi, hankengai, bunjin, broom, twin trunk, clump, forest; species × style weight table | Each = origin + maintainer program + intent bands (Style section); weight table kept |
 | Colour | Leaf ramps per species and season, falling-leaf colours, `TIPS` tip colouring, `HARMONY` → backdrop, pot glaze, stand; unglazed pots for conifers \~85% | `choose_look()` unchanged, still on its own stream. Tip turning and leaf flips read sim data (exposure, age, outer/upper rank) instead of random masks |
 | Backdrops | Studio gradient with dark corners, radial glow, contact shadow, ordered dithering; `--bg scene`; `--theme`; `--tone` (mostly dark) | Unchanged; glow centred on the measured crown |
-| Pot, stand, ground | Rectangular and oval pots; pot width from trunk caliper class (slender / medium / stout); surface roots, moss, soil | Caliper class becomes a design target; final pot width from the measured trunk base within that class |
+| Pot, stand, ground | Pots: rect, oval, drum, flared and a rock slab; three stand styles (table, scroll, jiita); pot width follows the crown width in V1, not the caliper class; surface roots, moss, soil, stone | The layout stage runs before the tree (`DesignSpace`). Caliper class drives pot width; stand and deck are sized for the class's maximum pot width, so only the pot width changes after simulation, from the measured trunk base within the class (D2, D4) |
 | Trunk detail | Species bark, buttressed redwood base, bleached jin and shari | Renderer unchanged; deadwood, shari bands and bark keys come from the sim |
 | Animation | 12 s seamless loop at 10 fps; gusts travel across the crown, pads sway 1–2 art px, leaves flip pale; 3–4 falling leaves or needle slivers land on soil, stand or deck; dust motes; `--fps`, `--static` | Unchanged; falling leaves spawn from real leaf positions; optional skeleton-driven sway amplitude within the pixel budget |
 | Output | \~360 art rows, integer nearest-neighbour scale per monitor; exact-index palette (V1 peak 136 of 255); transparent frame deltas; 150–250 KB GIF; still PNG for desktop theming; `last_seed` cache; monitors via `hyprctl`, fallback `awww query`; portrait screens | Unchanged |
@@ -75,18 +77,23 @@ V1 today: `choose_look()` (colours, own RNG stream) → `grow_scene(seed, w, h, 
 
 ### The seam: `TreeScene` IR
 
-Phase 1 splits V1 into look → layout → tree builder → `TreeScene` → renderer. The renderer may read only `TreeScene`, the look and the layout. The shape below is a starting point; Phase 0 adjusts it to what V1's renderer actually consumes.
+Phase 1 splits V1 into look → layout → tree builder → `TreeScene` → renderer. The renderer may read only `TreeScene`, the look and the layout. The shape below is the adjusted IR implemented in `src/bonsai_wall/ir.py`: V1's pad renderers take ellipse parameters, not masks, and V1's limb rasteriser takes the extra parameters listed (D3, D14, D15).
 
 ```python
 @dataclass(frozen=True)
-class Stroke:                   # one branch axis, after projection
-    pts: tuple[tuple[float, float], ...]    # art px, y down
-    radius: tuple[float, ...]               # per point
-    depth: tuple[float, ...]                # view z per point, larger = farther
-    order: int                              # 0 trunk, 1 primary, ...
-    wood: str                               # "live" | "jin" | "dead"
-    bark: str                               # species bark key
-    shari: tuple[tuple[float, float], ...]  # visible dead-bark band per point, offsets in [-1, 1]; () if none
+class Stroke:                   # one draw_limb call
+    pts: tuple                  # art px, y down
+    radius: tuple               # per point
+    seed: int                   # per-stroke jitter seed
+    order: int                  # 0 trunk/leader, 1 primary (or jin), 2 secondary, 3 twig
+    wood: str = "live"          # "live" | "jin" | "dead"
+    bark: str = ""              # species key
+    layer: str = "front"        # "back" (painted into the backdrop) | "front" | "over" (front limbs after the front pads)
+    streaks: bool = True
+    rough: float = 0.0
+    shari_frac: float = 0.0     # V1: dead-bark band width fraction, 1.0 = jin
+    shari: tuple | None = None  # V2: per-point (lo, hi) live-bark offsets of the dead band
+    depth: tuple = ()           # V2: view depth per point; empty for V1
 
 @dataclass(frozen=True)
 class Leaf:
@@ -96,23 +103,34 @@ class Leaf:
     rank: float                 # outer/upper rank 0..1, drives tip turning
 
 @dataclass(frozen=True)
-class Pad:                      # one foliage cluster
-    origin: tuple[int, int]
-    w: int; h: int
-    mask: bytes                 # coverage bitmap in art px
-    depth: float
-    renderer: str               # V1 foliage renderer key (cloud, dome, spray, pine, juniper, ...)
-    leaves: tuple[Leaf, ...]
-    sway: float                 # 1.0 = V1 amplitude
+class Pad:                      # one foliage cluster, in V1's renderer parameters
+    kind: str                   # cloud fine scale needle larch spray
+    cx: float; cy: float; rx: float; ryt: float; ryb: float
+    bias: float; grad: float; shear: float; droop: float
+    back: bool
+    ramp: int; ramp2: int; mix: float       # indices into the look's ramp list
+    tip_start: float
+    amp: float; lag: float                  # sway
+    bake_seed: int
+    leaves: tuple = ()          # V2: per-leaf exposure, age, rank
+    mask: bytes | None = None   # V2, optional; ignored until a mask renderer is approved
+
+@dataclass(frozen=True)
+class Flute:                    # redwood trunk fluting, applied after `after` strokes were drawn
+    layer: str; x0: float; r0: float; phase: float; y_start: float; after: int
 
 @dataclass(frozen=True)
 class TreeScene:
-    strokes: tuple[Stroke, ...]
-    pads: tuple[Pad, ...]       # renderer interleaves strokes and pads by depth
-    trunk_bases: tuple[tuple[int, int, float], ...]  # x, y, base radius per trunk
-    roots: dict                 # nebari parameters for V1's root renderer
-    bounds: tuple[int, int, int, int]
-    meta: dict                  # species, style, origin, years, care, school, engine version
+    seed: int
+    strokes: tuple              # order preserved: V1 ties are resolved by draw order
+    pads: tuple                 # builder order preserved: sprites are baked in this order
+    flutes: tuple
+    trunk_bases: tuple          # (x, base radius) per trunk
+    root_rules: dict            # style, long_side, shrink, rough, seed: nebari rules
+    wind_dir: int
+    layout: object              # layout.Layout
+    meta: dict                  # engine, species, style, caliper, mode, n_ramps, ...
+    v1_rng: object = None       # V1 only: the shared Random hand-off, excluded from equality
 ```
 
 | Refactor step | Exit check |
@@ -138,7 +156,7 @@ bonsai-wall/
 │   ├── __main__.py            # zipapp entry point
 │   ├── cli.py                 # V1 flags + new ones; --engine v1|v2
 │   ├── look.py                # choose_look, palettes, HARMONY (moved from V1, unchanged)
-│   ├── layout.py              # canvas, pot/stand placement -> DesignSpace (free space, rim, pot base, edges)
+│   ├── layout.py              # runs before the tree: canvas, pot/stand placement -> DesignSpace (free space, rim, pot base, edges); stand and deck sized for the caliper class's maximum pot width (D4)
 │   ├── ir.py                  # TreeScene and friends, validation
 │   ├── rng.py                 # seed streams + hash_u01(); the only module that creates randomness
 │   ├── v1/builder.py          # V1 tree builder -> TreeScene (moved, not rewritten)
@@ -356,6 +374,8 @@ Each V1 species gets one frozen profile built on one of four archetypes (broadle
 | Dawn redwood | Several flushes; excurrent leader | Opposite; branchlets shed whole in autumn | 0.66 | Strong | Deciduous | Drops | Keep one leader; pinch to hold flat tiers; buttressed base comes from the V1 renderer |
 | Japanese larch | 1–2 flushes; long and short shoots | Spiral on long shoots, tufts on spurs | 0.62 | Moderate, mostly from spurs | Deciduous | Persists as jin | Cut long shoots back to spurs; wire in winter; jin common |
 
+V1 has one `pinus` species and `--species pinus` stays. The profile follows the leaf key: `kuromatsu` and `old_pine` use the black-pine profile, `goyomatsu` uses white pine (D1).
+
 ```python
 @dataclass(frozen=True)
 class SpeciesProfile:
@@ -484,15 +504,15 @@ The renderer stays V1's; V2 changes only what it is fed. The adapter turns the f
 | --- | --- |
 | Project | Orthographic projection at the chosen front azimuth onto the art grid; view depth kept per point; no scaling, since sim units are art pixels |
 | Axes → strokes | Decompose into axes by thickest-child continuation; smooth each with a centripetal Catmull–Rom spline; emit per-point radius, depth, wood state, bark key and the visible shari band (the dead arc rotated into view) |
-| Leaves → pads | Cluster projected leaf points by grid connectivity at pad scale; pad mask = union of discs sized by leaf area; attach per-leaf exposure, age and outer/upper rank; take V1's foliage renderer key from the species |
+| Leaves → pads | Cluster projected leaf points by grid connectivity at pad scale; fit V1's ellipse parameters (`cx cy rx ryt ryb shear`) to each cluster (V1's pad renderers take no mask; an optional mask is carried but unused until a mask renderer is approved, D3); attach per-leaf exposure, age and outer/upper rank; take V1's foliage renderer key from the species |
 | Particles | Falling-leaf spawn points = real leaf positions weighted by age and exposure; the species decides leaf or needle sliver |
 | Sway | Per-pad compliance from its supporting chain, ∝ Σ L³ / r⁴, normalised so the median pad gets V1's amplitude; clamped to keep changed pixels per frame inside the budget |
 
 Colour: V1's ramps and `HARMONY` stay; V2 supplies the data V1 had to fake. Tip turning (`TIPS`) uses rank and exposure, so outer and upper foliage turns first because it really is outer and upper. Pads with low interior Q and pads further back use darker ramp levels, which adds volume without adding colours.
 
-Seasons: autumn shows deciduous leaves partly dropped, in proportion to the phenology state. The new winter option renders deciduous trees bare, showing the ramification V2 actually grows; V1's skeleton was designed to hide behind pads. Evergreens look the same in winter apart from juniper's winter bronze, which V1 already has.
+Seasons: autumn shows deciduous leaves partly dropped, in proportion to the phenology state. The new winter option renders all deciduous species (maple, zelkova, dawn redwood, larch) bare, showing the ramification V2 actually grows; V1's skeleton was designed to hide behind pads. Evergreens look the same in winter apart from juniper's winter bronze, which V1 already has.
 
-Drawing order: strokes and pads are interleaved by depth (back pads, back branches, trunk, front branches, front pads), so branches pass both in front of and behind foliage. Every colour still comes from V1's ramp system as exact palette indices; the harness reports the per-tree peak.
+Drawing order: V1's four layers stay (backdrop with back limbs, back pads, the static mid layer with front limbs, front pads) plus a fifth after the front pads for front limbs that cross foliage. It is empty on the V1 path, so V1 output is unchanged (D5). The adapter assigns strokes to layers by view depth, so branches pass both in front of and behind foliage. `draw_limb` takes an optional per-point shari band for V2; without it V1's single-fraction behaviour is untouched (D6). Every colour still comes from V1's ramp system as exact palette indices; the harness reports the per-tree peak.
 
 Layout: `DesignSpace` comes from V1's layout before simulation (pot rim, pot base, stand top, canvas edges, `--x`), so the maintainer prunes to fit. If final bounds still touch the pot, stand or an edge, a last "show prep" session cuts back to fit; the adapter never rescales. Cascade layouts must check the bottom edge, which V1 never did. Pot width is finalised from the measured trunk base inside the intent's caliper class, and V1's root renderer gets base radius and tree age for nebari.
 
@@ -518,13 +538,25 @@ Only `rng.py` creates randomness; a test fails on `random.`, `np.random` or time
 | `--engine` | `v1`, `v2` | `v1` until Gate 3, then `v2` |
 | `--care` | `master`, `enthusiast`, `neglected`, `random` | `random`, weighted |
 | `--school` | `wire`, `clip`, `random` | `random` |
-| `--season` | `spring`, `summer`, `autumn`, `winter`, `auto`, `random` | V1 behaviour (season implied by the leaf palette); `auto` = today's date, northern hemisphere; a value restricts `choose_look` to that season's palettes |
+| `--season` | `spring`, `summer`, `autumn`, `winter`, `auto`, `random` | V1 behaviour (season implied by the leaf palette); `auto` = today's date, northern hemisphere; a value restricts `choose_look` to that season's palettes (table below; D10) |
 | `--years` | integer | Sampled from the style's ranges |
 | `--dump DIR` | path | Off; writes state, action log (JSONL) and a growth strip PNG |
 | `--debug` | `light`, `vigor`, `envelope`, `actions` | Off; overlays on the still PNG |
 | `--grow-ahead` | flag | Off; after setting the wallpaper, grows the next seed at low priority so the next keypress is instant |
 
 V1 flags keep their semantics. A plain `bonsai-wall` stays fully random, and each output still gets its own tree.
+
+Leaf → season table for `--season` (D10). The restriction filters the leaf pool after the same number of draws, so no other look field moves, and without `--season` `choose_look` draws exactly as V1.
+
+| Species | spring | summer | autumn |
+| --- | --- | --- | --- |
+| acer | chartreuse, deshojo | green, red, crimson, burgundy | orange, yellow, autumn |
+| zelkova | chartreuse | zelkova_green | elm_amber, elm_bronze, autumn |
+| metasequoia | fresh | summer | turning, rust |
+| larix | fresh | fresh (fallback) | gold_tips, larch_gold, rust |
+| pinus, juniperus | any season, same look | | |
+
+Winter: all deciduous species (acer, zelkova, metasequoia, larix) are drawn bare whatever leaf key was drawn; pinus and juniperus are unchanged. If a season leaves a species with no leaf key (larix summer), use the nearest other season's keys in the order spring, autumn.
 
 State and cache: final arena + maintainer memory + world metadata serialise to `.npz` + JSON at `~/.cache/bonsai-wall/trees/<key>.npz`. The key hashes engine version, seed, species, style, origin, care, school, years, render season and `DesignSpace`, so re-rendering a tree with another backdrop, glaze, theme or pixel size skips the simulation. `ENGINE_VERSION` is printed in the run line and bumps whenever output for an existing seed changes.
 
@@ -547,7 +579,7 @@ The same metric functions feed the maintainer's perception and the tests, so "th
 | `envelope_iou` | Projected crown mask vs intent envelope |
 | `negative_space` | Background pixels inside the crown's convex hull ÷ hull area |
 | `leonardo` | Σ r\_child² ÷ r\_parent² at live junctions |
-| `structure_distance` | Between two trees: mean of (1 − IoU of height-normalised silhouettes) and the histogram distance of primary azimuths and elevations |
+| `structure_distance` | Between two trees, mirror-canonical (each tree is flipped so its silhouette mass lies on +x first, because both engines mirror trees at random): mean of (1 − IoU of height-normalised silhouettes) and the total-variation distance of the length-weighted primary-branch angle histogram. Computed by `bonsai_wall/metrics.py` from the same projected 2D IR strokes and pad extents for both engines (D8) |
 
 | Test | Pass condition |
 | --- | --- |
@@ -556,7 +588,7 @@ The same metric functions feed the maintainer's perception and the tests, so "th
 | Invariants (property tests, 200 seeds) | parent id < id; nothing live under dead wood; no foliage on dead wood; `leonardo` ≤ 1 + ε; no new buds on bare pine or juniper wood; yearly leaf removal ≤ stress budget; turns ≤ kink limit; no geometry inside pot, stand or rock; bounds inside the canvas |
 | Boundaries | Import rules hold; maintainer writes to arena arrays raise |
 | Style bands | Every V1 species × style combo with weight > 0: 50 seeds, ≥ 90% inside all bands |
-| Variety | Median pairwise `structure_distance` over 30 seeds per combo ≥ 1.5 × V1's on the same combos |
+| Variety | Median pairwise canonical `structure_distance` over 30 seeds per combo ≥ min(1.5 × V1's, ceiling), where the ceiling is the median canonical distance between that combo's trees and trees of the other styles of the same species (or V1's own value if V1 is already above it). Each capped combo is justified in `docs/baseline/v1_baseline_summary.md` (D8) |
 | Cost | 4K end-to-end p50 ≤ 4 s, p95 ≤ 8 s on one core; GIF size and changed pixels per frame ≤ V1 + 25%; palette ≤ 255, peak reported |
 | Visual review | Contact sheet per species (styles × 6 seeds) and growth strips (every 5 years) at each gate |
 

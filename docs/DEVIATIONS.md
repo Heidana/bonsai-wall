@@ -2,6 +2,8 @@
 
 **This file takes precedence over the spec wherever the two conflict.**
 
+Process: every newly approved deviation updates `docs/BONSAI_V2_SPEC.md` in the same commit as this file.
+
 Running log. Each entry: what the spec says, what V1 or the measurements show, what is proposed.
 Status is `proposed` until the user approves at a gate; Gate 1 was approved on 2026-10-15 with the amendments recorded below. Numbers come from `docs/baseline/v1_baseline_summary.md`.
 
