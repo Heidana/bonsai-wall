@@ -1,7 +1,7 @@
 # STATE: handoff file
 
 Read this first in every session. Update it at the end of every work session and at every gate.
-Last updated: end of the Phase 1 acceptance session (2026-10-15).
+Last updated: Phase 1 close-out (2026-10-15), after the D29 stand-overlap log and test.
 
 ## 1. Where we are
 
@@ -33,7 +33,7 @@ src/bonsai_wall/
   render/                 limbs.py (draw_limb), pads.py (6 pad renderers), static.py (prepare/finish), backdrop.py
   v1/builder.py           V1 design-first builder, emits TreeScene
   v2/, debug/             empty packages (Phase 2 fills v2/)
-tests/                    goldens, boundaries, IR, rng, layout, extensions, metrics, cli/build (267 tests, ~48 s)
+tests/                    goldens, boundaries, IR, rng, layout, extensions, metrics, cli/build (268 tests, ~49 s)
 tools/                    baseline_v1.py (V1 harness), compare_timing.py, make_goldens.py
 docs/                     spec, DEVIATIONS, STATE (this), TUNING, DESIGN_SPACE, DEV, v1_inventory, baseline/
 out/                      gitignored scratch for sheets and logs (out/baseline/sheet-v1-<species>.png)
@@ -71,6 +71,7 @@ There is no `bounds` field: the rendered `Scene` reports `xmin xmax crown_top` a
 - Timing, zipapp vs original script (4K, 1 core, interleaved): mean +2.0%, p50 +2.6%, p95 +0.8% (budget +-10%). `docs/baseline/p1_timing.csv`.
 - Zipapp is 46 KB and the build is reproducible.
 - V1's named misses re-measured from the IR: `docs/baseline/v1_named_misses.md`.
+- `stand_overlap_px` mirrors the renderer's pot-hiding rule (D29): non-cascade overlaps went from 52 of 1020 to 2 of 1020 (flare discs hidden behind shallow pots). Proof test in `tests/test_metrics.py`; goldens unchanged. The V2 bounds validator (D28) must apply the same visibility rule.
 - Variety baseline: canonical `structure_distance` per combo with capped 1.5x targets (29 of 36 capped; targets 1.06x to 1.5x V1, median 1.27x), in the baseline summary.
 - V1 pot width and design height by style and caliper, and pot W / crown W ranges (V1 overall p10 0.50, p50 0.75, p90 1.01): baseline summary, Layout section.
 
@@ -87,6 +88,7 @@ All in `docs/DEVIATIONS.md` (D1-D29), statuses recorded there. The ones that sha
 - **D10** `--season` table; winter bare for all deciduous species; larix summer falls back to `fresh`.
 - **D11** Python 3.10 floor; numpy is a runtime dependency.
 - **D17** the V2 run line adds engine, origin, simulated years, care profile (`none` until the maintainer exists) and action count.
+- **D29** the stand-overlap metric ignores limb pixels the pot hides (also applies to the V2 bounds validator, D28).
 - **D23-D26** windswept bands use leeward share and 60 degree primary window; corkscrew cap on `bend_amp_over_r`; `apex_pad_ratio` reported at Gate 2; no inner-thinning claim before an `interior_light` metric exists.
 
 ## 5. Open items
@@ -106,7 +108,7 @@ Scope (spec, Implementation phases, P2): arena, rng, light, allocation, buds, sh
 
 Ordered steps:
 
-1. **Orient.** `git checkout phase-2-biology`, run the tests (expect 267 pass), skim the spec sections above. Create `docs/TUNING.md` entries only when a parameter changes (log each with its reason).
+1. **Orient.** `git checkout phase-2-biology`, run the tests (expect 268 pass), skim the spec sections above. Create `docs/TUNING.md` entries only when a parameter changes (log each with its reason).
 2. **Arena and read-only view.** `v2/arena.py`: `TreeArena` struct-of-arrays (spec, Tree data model) with stable ids, capacity doubling, `ReadOnlyTree` (numpy views with `writeable = False`, CSR children index). Tests: parent id < id, writes through the view raise.
 3. **Species profiles.** `v2/species/`: `SpeciesProfile`, archetypes (broadleaf deciduous, pine), profiles for acer, zelkova, black pine. Start from the spec's numbers; the spec says they are tuning starting points.
 4. **Origins and world.** `v2/environment.py` (nursery, field presets), `v2/world.py` (calendar loop from the spec's Annual cycle, streams from `rng.py`, per-entity draws through `hash_u01`).
