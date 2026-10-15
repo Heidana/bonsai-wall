@@ -158,21 +158,24 @@ LEAVES = {
               [("#2f6128", "#82bb4c"), ("#6f7f2c", "#b6c96a")]),
     "summer": (["#16291d", "#26482a", "#3d6d35", "#5f9447", "#96c073"],
                [("#26482a", "#5f9447"), ("#4a6b2a", "#87ac5c")]),
+    "larch_olive": (["#242e14", "#425221", "#6c7d32", "#9eb04b", "#d0db78"],
+                    [("#425221", "#9eb04b"), ("#6b581e", "#bda042")]),
     "larch_gold": (["#36240c", "#6b4914", "#a8771e", "#deaa33", "#f7d969"],
                    [("#6b4914", "#deaa33"), ("#805216", "#ebb942")]),
     "rust": (["#33170c", "#663012", "#a0531e", "#cf8033", "#eeb469"],
              [("#663012", "#cf8033"), ("#7c3c14", "#df9646")]),
 }
 LEAVES["turning"] = LEAVES["fresh"]
-LEAVES["gold_tips"] = LEAVES["summer"]
+LEAVES["gold_tips"] = LEAVES["larch_olive"]
 TIPS = {"turning": "rust", "gold_tips": "larch_gold", "old_pine": "elm_amber"}
-# Only deciduous tip-turning modes replace the shed particle colour
 DECIDUOUS_TIPS = {"turning": "rust", "gold_tips": "larch_gold"}
 
 ACER_AUTUMN_MIX = ("green", "yellow", "orange", "red", "crimson")
 ACER_AUTUMN_FALL = LEAVES["orange"][1] + LEAVES["red"][1] + LEAVES["yellow"][1][:1]
 ZELKOVA_AUTUMN_MIX = ("zelkova_green", "yellow", "elm_amber", "elm_bronze")
 ZELKOVA_AUTUMN_FALL = LEAVES["elm_amber"][1] + LEAVES["elm_bronze"][1] + LEAVES["yellow"][1][:1]
+LARIX_AUTUMN_MIX = ("larch_olive", "larch_gold", "rust")
+LARIX_AUTUMN_FALL = LEAVES["larch_gold"][1] + LEAVES["rust"][1][:1]
 LEAVES["autumn"] = (None, ACER_AUTUMN_FALL)
 
 BARK_SMOOTH = ["#2e2a2b", "#4d4745", "#756d66", "#a39a8f"]    # Maple / Zelkova grey
@@ -180,7 +183,7 @@ BARK_PINE = ["#211a18", "#3b2e29", "#5c4840", "#856b5e"]      # Fissured dark pi
 BARK_JUNIPER = ["#291c16", "#473125", "#6e4d3a", "#997057"]   # Reddish-brown fibrous strip bark
 BARK_SEQ = ["#2b1a14", "#4a2c1d", "#70472c", "#9c6d48"]       # Dawn redwood fibrous bark
 BARK_LARCH = ["#261e1b", "#42342e", "#665147", "#8f7567"]     # Scaly grey-brown larch bark
-SHARI = ["#6e6a63", "#9e998e", "#cfcac0"]                     # Bleached deadwood (jin/shari)
+SHARI = ["#57524b", "#827c72", "#b0a99d"]                     # Aged deadwood (contrasts light & dark)
 
 SPECIES = {
     "acer": dict(
@@ -189,32 +192,33 @@ SPECIES = {
         leaves={"green": 20, "chartreuse": 12, "deshojo": 14, "red": 14, "crimson": 10,
                 "burgundy": 8, "orange": 8, "yellow": 6, "autumn": 18},
         autumn_mix=ACER_AUTUMN_MIX, autumn_fall=ACER_AUTUMN_FALL,
-        bark=BARK_SMOOTH, foliage="cloud", deadwood=0.0, particle="leaf"),
+        bark=BARK_SMOOTH, foliage="cloud", shari_p=0.0, jin_p=0.0, particle="leaf"),
     "pinus": dict(
-        styles={"moyogi": 26, "chokkan": 14, "slant": 18, "bunjin": 18,
+        styles={"moyogi": 28, "chokkan": 14, "slant": 18, "bunjin": 16,
                 "hankengai": 14, "twin": 10, "fukinagashi": 10},
         leaves={"kuromatsu": 48, "goyomatsu": 34, "old_pine": 18},
-        bark=BARK_PINE, foliage="needle", deadwood=0.55, particle="needle"),
+        bark=BARK_PINE, foliage="needle", shari_p=0.25, jin_p=0.50, particle="needle"),
     "juniperus": dict(
-        styles={"moyogi": 24, "slant": 18, "hankengai": 20, "bunjin": 18,
+        styles={"moyogi": 26, "slant": 18, "hankengai": 20, "bunjin": 16,
                 "fukinagashi": 14, "twin": 6},
         leaves={"shimpaku": 46, "itoigawa": 36, "winter_bronze": 18},
-        bark=BARK_JUNIPER, foliage="scale", deadwood=0.80, particle="needle"),
+        bark=BARK_JUNIPER, foliage="scale", shari_p=0.65, jin_p=0.70, particle="needle"),
     "zelkova": dict(
-        styles={"broom": 42, "moyogi": 18, "forest": 18, "twin": 12, "clump": 10},
+        styles={"broom": 44, "moyogi": 18, "forest": 18, "twin": 10, "clump": 10},
         leaves={"zelkova_green": 36, "chartreuse": 14, "elm_amber": 18,
                 "elm_bronze": 16, "autumn": 16},
         autumn_mix=ZELKOVA_AUTUMN_MIX, autumn_fall=ZELKOVA_AUTUMN_FALL,
-        bark=BARK_SMOOTH, foliage="fine", deadwood=0.0, particle="leaf"),
+        bark=BARK_SMOOTH, foliage="fine", shari_p=0.0, jin_p=0.0, particle="leaf"),
     "metasequoia": dict(
-        styles={"chokkan": 34, "forest": 26, "moyogi": 20, "twin": 12, "clump": 8},
+        styles={"chokkan": 36, "forest": 26, "moyogi": 20, "twin": 10, "clump": 8},
         leaves={"fresh": 26, "summer": 22, "turning": 22, "rust": 30},
-        bark=BARK_SEQ, foliage="spray", deadwood=0.10, particle="needle"),
+        bark=BARK_SEQ, foliage="spray", shari_p=0.0, jin_p=0.10, particle="needle"),
     "larix": dict(
-        styles={"moyogi": 28, "slant": 18, "bunjin": 16, "forest": 16,
-                "twin": 12, "hankengai": 10},
-        leaves={"fresh": 28, "gold_tips": 24, "larch_gold": 34, "rust": 14},
-        bark=BARK_LARCH, foliage="larch", deadwood=0.45, particle="needle"),
+        styles={"moyogi": 28, "chokkan": 14, "slant": 18, "bunjin": 12, "forest": 16,
+                "twin": 12},
+        leaves={"fresh": 26, "gold_tips": 24, "larch_gold": 34, "rust": 16},
+        autumn_mix=LARIX_AUTUMN_MIX, autumn_fall=LARIX_AUTUMN_FALL,
+        bark=BARK_LARCH, foliage="larch", shari_p=0.0, jin_p=0.35, particle="needle"),
 }
 SPECIES_WEIGHTS = {
     "acer": 22, "pinus": 18, "metasequoia": 17, "juniperus": 15, "zelkova": 14, "larix": 14
@@ -285,7 +289,7 @@ HARMONY_GROUPS = {
 }
 LEAF_TO_HARMONY = {
     "chartreuse": "green_broad", "green": "green_broad", "zelkova_green": "green_broad",
-    "fresh": "green_broad", "summer": "green_broad",
+    "fresh": "green_broad", "summer": "green_broad", "larch_olive": "green_broad",
     "kuromatsu": "conifer", "goyomatsu": "conifer", "old_pine": "conifer",
     "shimpaku": "conifer", "itoigawa": "conifer", "winter_bronze": "conifer",
     "deshojo": "red_autumn", "red": "red_autumn", "crimson": "red_autumn",
@@ -379,7 +383,7 @@ def draw_limb(buf, pts, radii, seed, streaks=True, rough=0.0, shari_frac=0.0):
             u += math.hypot(x - pts[i - 1][0], y - pts[i - 1][1])
         R = int(r) + 2
         ix, iy = int(x), int(y)
-        shari_center = 0.35 * math.sin(u * 0.07 + seed * 0.13)
+        shari_center = 0.22 * math.sin(u * 0.08 + seed * 0.13)
         for yy in range(iy - R, iy + R + 1):
             for xx in range(ix - R, ix + R + 1):
                 dx, dy = xx + 0.5 - x, yy + 0.5 - y
@@ -391,12 +395,15 @@ def draw_limb(buf, pts, radii, seed, streaks=True, rough=0.0, shari_frac=0.0):
                 if old is not None and old[0] <= dn:
                     continue
                 s = (dx * nx + dy * ny) / r
-                is_shari = (shari_frac > 0.99) or (
-                    shari_frac > 0.05 and r >= 2.2
-                    and abs(s - shari_center) < shari_frac * 0.48
-                    and dn < 0.78
+                # Shari is strictly interior (dn < 0.58) so living bark always frames it
+                shari_w = abs(s - shari_center)
+                is_jin = shari_frac > 0.99
+                is_shari = (not is_jin) and (
+                    0.05 < shari_frac < 0.95 and r >= 2.8
+                    and shari_w < shari_frac * 0.36
+                    and dn < 0.58
                 )
-                if is_shari:
+                if is_jin or is_shari:
                     slev = -3 if s > 0.25 else -2 if s > -0.35 else -1
                     if h2(xx, int(u * 0.8), seed + 77) < 0.18:
                         slev = min(-1, slev + 1)
@@ -406,7 +413,11 @@ def draw_limb(buf, pts, radii, seed, streaks=True, rough=0.0, shari_frac=0.0):
                     lev = 3 if s > 0.38 else 2 if s > -0.2 else 1 if s > -0.72 else 0
                     if dn > 0.84 and s < 0.25:
                         lev = max(0, lev - 1)
-                    if streaks:
+                    # Darken the living cambium roll right next to a shari vein
+                    if 0.05 < shari_frac < 0.95 and r >= 2.8 and dn < 0.68 \
+                            and shari_w < shari_frac * 0.36 + 0.16:
+                        lev = 0
+                    elif streaks:
                         hv = h2(round(s * r * 1.2) + 50, int(u / 2.6), seed)
                         if hv < 0.10 + 0.16 * rough:
                             lev = max(0, lev - 1)
@@ -478,16 +489,16 @@ def render_pad(pad, seed, rng):
             + 0.05 * math.sin(8 * a + ph[2])
         return (u_sh / rx) ** 2 + (v / ry) ** 2 <= m * m
 
-    bs = max(0.55 if fine else 0.7, min(1.15, rx / 22))
+    bs = max(0.62 if fine else 0.72, min(1.15, rx / 22))
     if fine:
-        bs *= 0.78
-    n = int(math.pi * rx * (ryt + ryb) / 2 / (6.5 * bs * bs)) + 6
+        bs *= 0.84
+    n = int(math.pi * rx * (ryt + ryb) / 2 / (6.2 * bs * bs)) + 6
     blobs, tries = [], 0
     while len(blobs) < n and tries < n * 30:
         tries += 1
         u, v = rng.uniform(-rx * 1.1, rx * 1.1), rng.uniform(-ryt, ryb * 0.92)
         if inside(u * 1.06, v * 1.06):
-            blobs.append((u, v, rng.uniform(1.5, 2.9) * bs))
+            blobs.append((u, v, rng.uniform(1.6, 2.9) * bs))
     m = int(rx * 0.4) + 3
     for i in range(m):
         a = math.pi + math.pi * (i + rng.uniform(0.15, 0.85)) / m
@@ -504,7 +515,7 @@ def render_pad(pad, seed, rng):
         R = int(rb) + 1
         for yy in range(int(by) - R, int(by) + R + 1):
             for xx in range(int(bx) - R, int(bx) + R + 1):
-                if fine and h2(xx, yy, seed + 41) < 0.14:
+                if fine and h2(xx, yy, seed + 41) < 0.09:
                     continue
                 dx, dy = xx + 0.5 - bx, yy + 0.5 - by
                 d2 = dx * dx + dy * dy
@@ -598,51 +609,61 @@ def render_needles(pad, seed, rng):
                 val = 1.55 + pad.bias + 0.55 * g_pad + 0.95 * tf + 0.65 * light_dot \
                     + (h2(px, py, seed + r_i) - 0.5) * 0.45
                 lev = max(0, min(4, int(round(val))))
-                is_tip = "tip" if (pad.tip_ramp and tf < 0.35 and rng.random() < 0.35) else False
+                is_tip = "tip" if (pad.tip_ramp and tf < 0.35 and rng.random() < 0.28) else False
                 grid[(px, py)] = (lev, is_tip)
 
     _bake_pad_sprites(pad, grid, seed)
 
 
 def render_larch(pad, seed, rng):
-    """Japanese Larch (Larix): open, airy branchlet pads with tufted short-shoot
-    needle rosettes beaded along arching and pendulous hanging shoots."""
+    """Japanese Larch (Larix): cohesive, softly arched foliage pad with a shaded
+    core and delicate tufted needle rosettes along the outer/lower spurs."""
     rx, ryt, ryb = pad.rx, pad.ryt, pad.ryb
     grid = {}
-    n_shoots = max(4, int(rx * 0.65))
-    for s_i in range(n_shoots):
-        fx = (s_i + rng.uniform(0.1, 0.9)) / n_shoots * 2 - 1
-        u0 = fx * rx * 0.88
-        v0 = rng.uniform(-ryt * 0.55, ryb * 0.25) + (fx * fx) * ryb * 0.45
-        # Pendulous side shoot hanging down from (u0, v0)
-        hang = rng.uniform(2.2, 5.2) * max(0.8, rx / 10.0)
-        drift_x = (fx * 1.5 + pad.shear * 2.5)
-        n_nodes = rng.randint(3, 5)
-        for n_i in range(n_nodes):
-            nf = n_i / max(1, n_nodes - 1)
-            bx = pad.cx + u0 + drift_x * nf + rng.uniform(-0.6, 0.6)
-            by = pad.cy + v0 + hang * (nf ** 1.35)
-            g_pad = -(0.35 * (bx - pad.cx) / rx + 0.85 * (by - pad.cy) / max(1.0, ryt + ryb + hang))
-            rel_out = math.hypot((bx - pad.cx) / rx, max(0.0, (by - pad.cy) / (ryb + hang)))
-            is_tip = "tip" if (
-                pad.tip_ramp is not None
-                and rel_out > pad.tip_start + (h2(int(bx), int(by), seed + 11) - 0.5) * 0.25
-            ) else False
-            # Draw short-shoot needle rosette (starburst of short 1.5-2.8px needles)
-            grid[(round(bx), round(by))] = (max(0, min(4, round(1.6 + pad.bias + 0.5 * g_pad))), is_tip)
-            n_fasc = rng.randint(5, 7)
-            for f_i in range(n_fasc):
-                # Bias angles slightly downward and outward like drooping larch spurs
-                ang = rng.uniform(-math.pi * 0.85, math.pi * 1.15)
-                cs, sn = math.cos(ang), math.sin(ang)
-                flen = rng.uniform(1.4, 2.7)
-                for step in (0.55, 1.0):
-                    px = round(bx + cs * flen * step)
-                    py = round(by + sn * flen * step)
-                    ld = -(0.55 * cs + 0.83 * sn)
-                    val = 1.95 + pad.bias + 0.65 * g_pad + 0.85 * ld - 0.35 * nf \
-                        + (h2(px, py, seed + f_i) - 0.5) * 0.5
-                    grid[(px, py)] = (max(0, min(4, int(round(val)))), is_tip)
+    n_tufts = max(7, int(rx * 1.05))
+    tufts = []
+    for i in range(n_tufts):
+        fx = (i + rng.uniform(0.1, 0.9)) / n_tufts * 2 - 1
+        u = fx * rx * 0.86 + rng.uniform(-0.8, 0.8)
+        # Gently arched pad: center is higher, tips droop slightly
+        v = rng.uniform(-ryt * 0.55, ryb * 0.30) + (fx * fx) * ryb * 0.42
+        tufts.append((u, v, fx))
+    tufts.sort(key=lambda t: -t[1])
+
+    for u, v, fx in tufts:
+        bx, by = pad.cx + u, pad.cy + v
+        g_pad = -(0.35 * u / rx + 0.85 * v / max(1.0, ryt + ryb))
+        rel_out = min(1.0, abs(fx) * 0.82 + max(0.0, v / max(1.0, ryb)) * 0.25)
+        # Cohesive soft interior cushion (2x2 / 3x2 shaded core)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if abs(dx) + abs(dy) > 1 and rng.random() < 0.4:
+                    continue
+                px, py = round(bx) + dx, round(by) + dy
+                c_val = 1.65 + pad.bias + 0.65 * g_pad - 0.45 * dy - 0.25 * dx
+                is_tip = "tip" if (
+                    pad.tip_ramp is not None
+                    and dith(px, py, max(0.0, (rel_out - pad.tip_start) * 1.8))
+                ) else False
+                grid[(px, py)] = (max(0, min(4, int(round(c_val)))), is_tip)
+
+        # Short radiating needle fascicles around the tuft
+        n_fasc = rng.randint(5, 7)
+        for f_i in range(n_fasc):
+            ang = rng.uniform(-math.pi * 0.95, math.pi * 0.95)
+            cs, sn = math.cos(ang), math.sin(ang)
+            flen = rng.uniform(1.6, 2.8)
+            for step in (0.55, 1.0):
+                px = round(bx + cs * flen * step)
+                py = round(by + sn * flen * step)
+                ld = -(0.50 * cs + 0.85 * sn)
+                val = 1.95 + pad.bias + 0.65 * g_pad + 0.85 * ld \
+                    + (h2(px, py, seed + f_i) - 0.5) * 0.45
+                is_tip = "tip" if (
+                    pad.tip_ramp is not None
+                    and dith(px, py, max(0.0, (rel_out + 0.12 * step - pad.tip_start) * 1.9))
+                ) else False
+                grid[(px, py)] = (max(0, min(4, int(round(val)))), is_tip)
 
     _bake_pad_sprites(pad, grid, seed)
 
@@ -756,89 +777,89 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
     # ---- structural plan ----------------------------------------------------
     u = rng.uniform
     style = look.get("style") or wpick(rng, sp["styles"])
-    caliper = rng.choices(("slender", "medium", "stout"), (30, 42, 28))[0]
+    caliper = rng.choices(("slender", "medium", "stout"), (30, 44, 26))[0]
     if style in ("bunjin", "forest"):
         caliper = "slender"
-    elif style in ("moyogi", "slant", "hankengai") and species in ("pinus", "juniperus"):
-        caliper = rng.choices(("medium", "stout"), (45, 55))[0]
     elif style == "broom":
-        caliper = rng.choice(("medium", "stout"))
+        caliper = rng.choices(("slender", "medium"), (45, 55))[0]
+    elif style in ("moyogi", "slant", "hankengai") and species in ("pinus", "juniperus"):
+        caliper = rng.choices(("medium", "stout"), (48, 52))[0]
 
     long_side = rng.choice((-1, 1))
     fol_kind = sp["foliage"]
 
     if style == "chokkan":
-        hfrac, wr, cfrac = u(0.48, 0.60), u(0.34, 0.48), u(0.68, 0.82)
-        peak, e_top, q_bot = u(0.80, 0.96), u(0.75, 1.05), u(0.05, 0.35)
-        asym, skew, tilt = u(0.0, 0.10), u(-0.02, 0.02), u(-0.02, 0.02)
+        hfrac, wr, cfrac = u(0.48, 0.60), u(0.36, 0.48), u(0.68, 0.80)
+        peak, e_top, q_bot = u(0.78, 0.92), u(0.75, 1.05), u(0.10, 0.35)
+        asym, skew, tilt = u(0.0, 0.08), u(-0.02, 0.02), u(-0.02, 0.02)
         mode = "tiers" if fol_kind == "spray" else "pads"
-        droop = u(0.05, 0.15)
+        droop = u(0.04, 0.12)
     elif style == "moyogi":
-        hfrac, wr, cfrac = u(0.40, 0.50), u(0.55, 0.82), u(0.58, 0.74)
-        peak, e_top, q_bot = u(0.75, 0.95), u(0.50, 0.80), u(0.05, 0.35)
-        asym, skew, tilt = u(0.08, 0.28), u(-0.05, 0.10), u(-0.04, 0.06)
-        mode = "pads" if (fol_kind in ("needle", "scale", "larch") or rng.random() < 0.80) else "dome"
-        droop = u(0.05, 0.22)
+        hfrac, wr, cfrac = u(0.42, 0.50), u(0.54, 0.76), u(0.58, 0.72)
+        peak, e_top, q_bot = u(0.72, 0.88), u(0.52, 0.78), u(0.15, 0.40)
+        asym, skew, tilt = u(0.06, 0.22), u(-0.04, 0.08), u(-0.03, 0.05)
+        mode = "pads" if (fol_kind in ("needle", "scale", "larch") or rng.random() < 0.78) else "dome"
+        droop = u(0.04, 0.16)
     elif style == "slant":
-        hfrac, wr, cfrac = u(0.38, 0.46), u(0.65, 0.92), u(0.54, 0.72)
-        peak, e_top, q_bot = u(0.80, 0.96), u(0.42, 0.65), u(0.05, 0.30)
-        asym, skew, tilt = u(0.22, 0.45), u(0.18, 0.34), u(0.10, 0.24)
+        hfrac, wr, cfrac = u(0.38, 0.46), u(0.60, 0.84), u(0.54, 0.68)
+        peak, e_top, q_bot = u(0.74, 0.90), u(0.45, 0.65), u(0.15, 0.38)
+        asym, skew, tilt = u(0.20, 0.38), u(0.18, 0.32), u(0.10, 0.22)
         mode = "pads" if (fol_kind in ("needle", "scale", "larch") or rng.random() < 0.75) else "dome"
-        droop = u(0.12, 0.28)
+        droop = u(0.08, 0.20)
     elif style == "fukinagashi":
-        hfrac, wr, cfrac = u(0.36, 0.45), u(0.72, 0.98), u(0.55, 0.72)
-        peak, e_top, q_bot = u(0.78, 0.95), u(0.45, 0.70), u(0.05, 0.30)
-        asym, skew, tilt = u(0.45, 0.70), u(0.28, 0.45), u(0.18, 0.32)
+        hfrac, wr, cfrac = u(0.36, 0.45), u(0.68, 0.92), u(0.55, 0.70)
+        peak, e_top, q_bot = u(0.72, 0.88), u(0.45, 0.70), u(0.15, 0.35)
+        asym, skew, tilt = u(0.38, 0.58), u(0.26, 0.42), u(0.16, 0.28)
         mode = "pads"
-        droop = u(0.08, 0.22)
+        droop = u(0.06, 0.16)
     elif style == "hankengai":
-        hfrac, wr, cfrac = u(0.30, 0.38), u(0.68, 0.90), u(0.62, 0.78)
-        peak, e_top, q_bot = u(0.80, 0.96), u(0.45, 0.70), u(0.05, 0.25)
-        asym, skew, tilt = u(0.35, 0.58), u(0.10, 0.24), u(0.20, 0.36)
+        hfrac, wr, cfrac = u(0.30, 0.38), u(0.62, 0.82), u(0.60, 0.74)
+        peak, e_top, q_bot = u(0.75, 0.90), u(0.45, 0.70), u(0.15, 0.35)
+        asym, skew, tilt = u(0.30, 0.50), u(0.08, 0.20), u(0.16, 0.30)
         mode = "pads"
-        droop = u(0.20, 0.38)
+        droop = u(0.12, 0.24)
     elif style == "bunjin":
-        hfrac, wr, cfrac = u(0.54, 0.66), u(0.32, 0.46), u(0.24, 0.35)
-        peak, e_top, q_bot = u(0.65, 0.85), u(0.45, 0.75), u(0.10, 0.40)
-        asym, skew, tilt = u(0.15, 0.38), u(-0.10, 0.18), u(-0.06, 0.14)
+        hfrac, wr, cfrac = u(0.54, 0.64), u(0.32, 0.44), u(0.24, 0.34)
+        peak, e_top, q_bot = u(0.65, 0.82), u(0.45, 0.72), u(0.15, 0.42)
+        asym, skew, tilt = u(0.12, 0.32), u(-0.08, 0.16), u(-0.05, 0.12)
         mode = "pads"
-        droop = u(0.08, 0.22)
+        droop = u(0.06, 0.16)
     elif style == "broom":
-        hfrac, wr, cfrac = u(0.38, 0.48), u(0.82, 1.15), u(0.52, 0.66)
-        peak, e_top, q_bot = u(0.72, 0.90), u(0.30, 0.48), u(0.12, 0.42)
-        asym, skew, tilt = u(0.0, 0.12), u(-0.03, 0.03), u(-0.03, 0.03)
-        mode = "dome" if rng.random() < 0.82 else "pads"
-        droop = u(-0.04, 0.08)
+        hfrac, wr, cfrac = u(0.40, 0.48), u(0.74, 0.98), u(0.56, 0.68)
+        peak, e_top, q_bot = u(0.62, 0.76), u(0.38, 0.54), u(0.45, 0.72)
+        asym, skew, tilt = u(0.0, 0.08), u(-0.02, 0.02), u(-0.02, 0.02)
+        mode = "dome"
+        droop = u(-0.04, 0.04)
     elif style == "twin":
-        hfrac, wr, cfrac = u(0.40, 0.49), u(0.62, 0.88), u(0.58, 0.74)
-        peak, e_top, q_bot = u(0.80, 0.96), u(0.45, 0.68), u(0.05, 0.30)
-        asym, skew, tilt = u(0.08, 0.25), u(-0.04, 0.08), u(-0.03, 0.06)
+        hfrac, wr, cfrac = u(0.40, 0.49), u(0.58, 0.82), u(0.58, 0.72)
+        peak, e_top, q_bot = u(0.74, 0.90), u(0.45, 0.68), u(0.15, 0.38)
+        asym, skew, tilt = u(0.08, 0.22), u(-0.04, 0.08), u(-0.03, 0.06)
         mode = "pads" if (fol_kind in ("needle", "scale", "larch") or rng.random() < 0.70) else "dome"
-        droop = u(0.05, 0.20)
+        droop = u(0.05, 0.16)
     elif style == "clump":
-        hfrac, wr, cfrac = u(0.42, 0.50), u(0.55, 0.80), u(0.62, 0.78)
-        peak, e_top, q_bot = u(0.60, 0.80), u(0.55, 0.80), u(0.25, 0.60)
-        asym, skew, tilt = u(0.0, 0.18), u(-0.05, 0.05), u(-0.03, 0.03)
+        hfrac, wr, cfrac = u(0.42, 0.50), u(0.55, 0.78), u(0.62, 0.76)
+        peak, e_top, q_bot = u(0.62, 0.78), u(0.55, 0.78), u(0.30, 0.60)
+        asym, skew, tilt = u(0.0, 0.15), u(-0.04, 0.04), u(-0.03, 0.03)
         mode = "pads" if fol_kind in ("needle", "scale", "larch") else ("dome" if rng.random() < 0.7 else "pads")
-        droop = u(0.0, 0.14)
-    else:  # forest
-        hfrac, wr, cfrac = u(0.42, 0.52), u(0.75, 1.05), u(0.55, 0.72)
-        peak, e_top, q_bot = u(0.70, 0.92), u(0.50, 0.75), u(0.20, 0.50)
-        asym, skew, tilt = u(0.08, 0.26), u(-0.04, 0.04), 0.0
-        mode = "tiers" if fol_kind == "spray" else "dome"
         droop = u(0.0, 0.12)
+    else:  # forest
+        hfrac, wr, cfrac = u(0.42, 0.52), u(0.75, 1.02), u(0.55, 0.70)
+        peak, e_top, q_bot = u(0.68, 0.88), u(0.50, 0.75), u(0.25, 0.55)
+        asym, skew, tilt = u(0.08, 0.24), u(-0.04, 0.04), 0.0
+        mode = "tiers" if fol_kind == "spray" else "dome"
+        droop = u(0.0, 0.10)
 
     if fol_kind == "larch":
-        # Larch: open, irregular crown with strongly drooping branches
-        droop = max(droop, u(0.18, 0.34))
+        droop = u(0.10, 0.20)
         if style != "forest":
             mode = "pads"
 
     rough = u(0.55, 1.0) if species in ("pinus", "larix", "metasequoia") else (
         u(0.35, 0.75) if caliper == "stout" else 0.15
     )
-    has_shari = (rng.random() < sp["deadwood"]) and style not in ("forest", "broom")
-    shari_frac = u(0.28, 0.55) if has_shari else 0.0
+    has_shari = (rng.random() < sp["shari_p"]) and style not in ("forest", "broom")
+    has_jin = (rng.random() < sp["jin_p"]) and style not in ("forest", "broom")
+    shari_frac = u(0.28, 0.48) if has_shari else 0.0
 
     if fol_kind == "spray" and style in ("chokkan", "moyogi", "twin", "forest"):
         mode = "tiers"
@@ -880,16 +901,16 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
         pot_w, pot_h = max(56 * k * shrink, cw * u(0.42, 0.54)), u(11, 16) * k
         pot_style = rng.choices(("drum", "flared", "slab"), (50, 30, 20))[0]
     elif style in ("broom", "clump"):
-        pot_w, pot_h = cw * u(0.48, 0.60), u(12, 18) * k
-        pot_style = rng.choices(("oval", "rect", "slab"), (55, 30, 15))[0]
+        pot_w, pot_h = cw * u(0.48, 0.58), u(11, 16) * k
+        pot_style = rng.choices(("oval", "rect", "slab"), (60, 28, 12))[0]
     else:
-        pot_w, pot_h = cw * u(0.48, 0.64), u(15, 23) * k
+        pot_w, pot_h = cw * u(0.48, 0.64), u(15, 22) * k
         pot_style = rng.choices(("rect", "oval", "drum", "flared"), (38, 32, 18, 12))[0]
 
     if mode == "tiers" and style != "forest":
         pot_w *= u(1.10, 1.28)
         pot_h *= u(0.80, 0.95)
-    pot_w = round(max(54 * k * shrink, min(pot_w, 250 * k, 0.72 * W)))
+    pot_w = round(max(54 * k * shrink, min(pot_w, 240 * k, 0.72 * W)))
     pot_h = round(pot_h)
     stand_style = rng.choices(("table", "scroll", "jiita"),
                               (25, 25, 50) if pot_style == "slab" else (50, 30, 20))[0]
@@ -898,10 +919,10 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
 
     if style in ("slant", "fukinagashi", "hankengai"):
         base_off = -long_side * u(0.08, 0.16) * pot_w
-    elif style == "forest":
-        base_off = 0.0
+    elif style in ("forest", "broom"):
+        base_off = u(-0.04, 0.04) * pot_w if style == "broom" else 0.0
     else:
-        base_off = u(-0.10, 0.10) * pot_w
+        base_off = u(-0.09, 0.09) * pot_w
 
     xc = W * xfrac - 0.6 * (base_off + (L_ + R_) / 2)
     lo, hi = 0.04 * W - (base_off + L_), 0.96 * W - (base_off + R_)
@@ -969,20 +990,20 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             w = max(0.0, 1 - q_bot * ((t - peak) / (1 - peak + 1e-6)) ** 2) ** 0.5
         return Wh * (1 + asym * s * long_side) * w
 
-    def inside(x, y):
-        c0 = cxat(y)
-        return abs(x - c0) <= half(y, 1 if x >= c0 else -1)
-
     # ---- trunk system (leaders) with segment-clamped sweeping bends ----------
-    r_base = {"slender": u(0.042, 0.058), "medium": u(0.068, 0.084),
-              "stout": u(0.088, 0.108)}[caliper] * Ht
+    r_base = {"slender": u(0.042, 0.056), "medium": u(0.062, 0.078),
+              "stout": u(0.082, 0.098)}[caliper] * Ht
     if style == "bunjin":
         r_base = u(0.032, 0.044) * Ht
+    elif style == "broom":
+        r_base = u(0.046, 0.062) * Ht
     elif style == "forest":
-        r_base = u(0.032, 0.048) * Ht
+        r_base = u(0.032, 0.046) * Ht
     if mode == "tiers":
         r_base *= 0.65 if style != "forest" else 0.85
         flare_len, flare0 = u(16, 24), u(0.50, 0.75)
+    elif style == "broom":
+        flare_len, flare0 = u(12, 18), u(0.45, 0.65)
     else:
         flare_len, flare0 = u(10, 15), u(0.32, 0.52)
 
@@ -990,8 +1011,6 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
     rph = u(0, TAU)
 
     def path_bonsai(x0, y0, x1, y1, bends, amp, side0=None, power=0.82):
-        """Spline with diminishing internodes and strict segment-clamped lateral
-        offsets so close bends never kink or corkscrew."""
         L = math.hypot(x1 - x0, y1 - y0) or 1.0
         ux, uy = (x1 - x0) / L, (y1 - y0) / L
         s = side0 or rng.choice((-1, 1))
@@ -1001,8 +1020,7 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             f = raws[i]
             local_seg = min(raws[i] - raws[i - 1], raws[i + 1] - raws[i]) * L
             decay = 1.0 - 0.45 * (i - 1) / max(1, bends)
-            # Clamp lateral displacement to at most 0.34 of the adjacent segment length
-            a = min(amp * L * decay * u(0.75, 1.20), 0.34 * local_seg) * s
+            a = min(amp * L * decay * u(0.75, 1.20), 0.32 * local_seg) * s
             bx_i = x0 + ux * L * f - uy * a
             by_i = y0 + uy * L * f + ux * a
             ctrl.append((bx_i, by_i))
@@ -1021,29 +1039,28 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             if flare:
                 r += r0 * flare * math.exp(-f * tot / (flare_len * k))
             if rough:
-                r *= 1 + 0.08 * rough * math.sin(f * tot / (6.5 * k) + rph)
+                r *= 1 + 0.07 * rough * math.sin(f * tot / (6.5 * k) + rph)
             rad.append(r)
         leaders.append((pts, rad, elig, back_))
 
-    y_apex = y_top + ch * u(0.10, 0.22)
-    elig = min(y_bot + u(0.0, 0.05) * Ht, yb - 0.30 * Ht)
-    r_tip = max(1.4 * k, 0.14 * r_base)
+    y_apex = y_top + ch * u(0.10, 0.20)
+    elig = min(y_bot + u(0.0, 0.04) * Ht, yb - 0.30 * Ht)
+    r_tip = max(1.3 * k, 0.14 * r_base)
 
     if style == "chokkan":
         add_leader(path_bonsai(xb, yb, cx_top, y_top + ch * u(0.02, 0.06), 1, u(0.003, 0.012)),
                    r_base, max(1.1 * k, 0.10 * r_base), 0.35, elig, p=u(1.0, 1.3))
         bases.append((xb, r_base))
     elif style in ("moyogi", "slant", "fukinagashi"):
-        bends = rng.randint(2, 4) if style == "moyogi" else rng.randint(2, 3)
-        amp = u(0.05, 0.11) if style == "moyogi" else u(0.04, 0.08)
+        bends = rng.randint(2, 3) if style == "moyogi" else 2
+        amp = u(0.05, 0.10) if style == "moyogi" else u(0.04, 0.07)
         add_leader(path_bonsai(xb, yb, cx_top, y_apex, bends, amp, -long_side),
                    r_base, r_tip, 0.35, elig)
         bases.append((xb, r_base))
     elif style == "bunjin":
-        # 2 to 3 long, lazy calligraphic sweeps
         bends = rng.randint(2, 3)
-        elig_b = y_bot + 0.05 * Ht
-        add_leader(path_bonsai(xb, yb, cx_top, y_apex, bends, u(0.05, 0.11), -long_side, power=0.88),
+        elig_b = y_bot + 0.04 * Ht
+        add_leader(path_bonsai(xb, yb, cx_top, y_apex, bends, u(0.05, 0.10), -long_side, power=0.88),
                    r_base, max(1.2 * k, 0.22 * r_base), 0.25, elig_b)
         bases.append((xb, r_base))
     elif style == "hankengai":
@@ -1064,32 +1081,52 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
         ]
         add_leader(spline(casc_ctrl), r_base * 0.72, 1.3 * k, 0.0, casc_y + 10 * k)
     elif style == "broom":
-        hs = u(0.28, 0.40) * Ht
-        sx, sy = xb + u(-0.02, 0.02) * Ht, yb - hs
-        r_split = r_base * u(0.64, 0.76)
-        add_leader(path_bonsai(xb, yb, sx, sy, 1, 0.02), r_base, r_split, 0.35, -1e9)
+        # Graceful lower trunk dividing smoothly across the collar into a recursive Y-fan
+        hs = u(0.27, 0.34) * Ht
+        sx, sy = xb + u(-0.015, 0.015) * Ht, yb - hs
+        r_split = r_base * u(0.70, 0.80)
+        add_leader(path_bonsai(xb, yb, sx, sy, 1, 0.015), r_base, r_split, 0.45, -1e9)
         bases.append((xb, r_base))
-        n = rng.randint(4, 7)
-        spread = math.radians(u(38, 62))
-        for i in range(n):
-            ang = -spread + 2 * spread * i / (n - 1) + math.radians(u(-6, 6))
-            dx, dy = math.sin(ang), -math.cos(ang)
-            d, d_in, d_out = 0.0, None, None
-            while d < 3 * Ht:
-                d += 2 * k
-                ins = inside(sx + dx * d, sy + dy * d)
-                if ins and d_in is None:
-                    d_in = d
-                if d_in is not None and not ins:
-                    d_out = d
-                    break
-            if d_in is None:
-                continue
-            d_out = d_out or d
-            ln = d_in + (d_out - d_in) * u(0.48, 0.72)
-            add_leader(path_bonsai(sx, sy, sx + dx * ln, sy + dy * ln, 2, u(0.03, 0.06),
-                                   1 if ang > 0 else -1),
-                       r_split * u(0.45, 0.65), 1.1 * k)
+        broom_tips = []
+        n1 = rng.choice((3, 4))
+        sp1 = math.radians(u(42, 56))
+        for i in range(n1):
+            t1 = -1.0 + 2.0 * i / (n1 - 1)
+            ang1 = t1 * sp1 + math.radians(u(-5, 5))
+            # Offset starting points across the trunk top so no flat shelf remains
+            x1_0 = sx + t1 * r_split * 0.48
+            y1_0 = sy + abs(t1) * r_split * 0.22
+            r1_0 = r_split * (0.62 if abs(t1) < 0.5 else 0.56)
+            len1 = ch * u(0.36, 0.46)
+            x1_1 = x1_0 + math.sin(ang1) * len1
+            y1_1 = y1_0 - math.cos(ang1) * len1
+            r1_1 = r1_0 * u(0.62, 0.70)
+            add_leader(path_bonsai(x1_0, y1_0, x1_1, y1_1, 1, 0.04, 1 if ang1 >= 0 else -1),
+                       r1_0, r1_1, 0.0, sy)
+            # Secondary V-forks from each primary limb
+            n2 = 2 if n1 == 4 else rng.choice((2, 3))
+            for j in range(n2):
+                t2 = -1.0 + 2.0 * j / max(1, n2 - 1)
+                ang2 = ang1 * 0.92 + t2 * math.radians(u(16, 24)) + math.radians(u(-4, 4))
+                ang2 = max(-math.radians(74), min(math.radians(74), ang2))
+                len2 = ch * u(0.34, 0.46) * (1.0 - 0.14 * abs(ang2))
+                x2_1 = x1_1 + math.sin(ang2) * len2
+                y2_1 = y1_1 - math.cos(ang2) * len2
+                r2_0 = r1_1 * u(0.66, 0.76)
+                r2_1 = max(1.0 * k, r2_0 * u(0.45, 0.55))
+                bk2 = (i + j) % 3 == 1 and rng.random() < 0.35
+                add_leader(path_bonsai(x1_1, y1_1, x2_1, y2_1, 1, 0.04, 1 if ang2 >= 0 else -1),
+                           r2_0, r2_1, 0.0, sy, back_=bk2)
+                broom_tips.append((x2_1, y2_1, ang2, r2_1, bk2))
+                # Tertiary twigs reaching into the upper/outer dome
+                for m_i in (-1, 1):
+                    ang3 = ang2 + m_i * math.radians(u(10, 18))
+                    len3 = ch * u(0.16, 0.25)
+                    x3_1 = x2_1 + math.sin(ang3) * len3
+                    y3_1 = y2_1 - math.cos(ang3) * len3
+                    add_leader(spline([(x2_1, y2_1), (x3_1, y3_1)]),
+                               r2_1 * 0.78, 0.85 * k, 0.0, sy, back_=bk2)
+                    broom_tips.append((x3_1, y3_1, ang3, 0.85 * k, bk2))
     elif style == "twin":
         s2 = long_side if rng.random() < 0.6 else -long_side
         r2f = u(0.55, 0.72)
@@ -1105,9 +1142,9 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
         add_leader(path_bonsai(o0[0], o0[1], x2, y2, rng.randint(2, 3), u(0.04, 0.07), s2),
                    o0[2], 1.3 * k, o0[3], elig + 0.06 * Ht)
     elif style == "clump":
-        n = rng.randint(3, 6)
+        n = rng.randint(3, 5)
         main = rng.randrange(n)
-        tops = sorted(u(-0.58, 0.58) for _ in range(n))
+        tops = sorted(u(-0.55, 0.55) for _ in range(n))
         for i in range(n):
             bx = xb + (i - (n - 1) / 2) * r_base * 0.52
             ty = y_apex if i == main else y_top + ch * u(0.24, 0.56)
@@ -1133,11 +1170,11 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
 
     front, back = {}, {}
     flute = []
-    NX, NY, NR, PAR, KIND, SIDE, BK, CH, LID, ARC, CONV = ([] for _ in range(11))
+    NX, NY, NR, PAR, KIND, SIDE, BK, CH, LID, ARC, CONV, PAD_ID = ([] for _ in range(12))
     cand = []
     for li, (pts, rad, ey, lbk) in enumerate(leaders):
         draw_limb(back if lbk else front, pts, rad, seed + li * 19,
-                  rough=rough, shari_frac=shari_frac if li == 0 else shari_frac * 0.6)
+                  rough=rough, shari_frac=shari_frac if li == 0 else shari_frac * 0.5)
         if mode == "tiers":
             flute.append((back if lbk else front, pts[0][0], rad[0], u(0, TAU)))
         q, tot = arcfrac(pts)
@@ -1159,43 +1196,51 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             LID.append(li)
             ARC.append(q[j] * tot)
             CONV.append(c_side)
+            PAD_ID.append(-1)
             if py <= ey:
                 cand.append(len(NX) - 1)
     trunk_idx = list(range(len(NX)))
 
+    def leader_at_y(li, y_q):
+        """Return (x, y, r, node_idx) on leader li closest to height y_q."""
+        l_nodes = [i for i in trunk_idx if LID[i] == li] or trunk_idx
+        best_i = min(l_nodes, key=lambda i: abs(NY[i] - y_q))
+        return NX[best_i], NY[best_i], NR[best_i], best_i
+
     # Add Jin (deadwood apex/branch stubs) on old conifers
-    if has_shari:
+    if has_jin:
         for (pts, rad, ey, lbk) in leaders[:2]:
             if lbk:
                 continue
-            if rng.random() < 0.65 and style in ("moyogi", "bunjin", "slant", "hankengai"):
+            if rng.random() < 0.55 and style in ("moyogi", "bunjin", "slant", "hankengai"):
                 tx, ty = pts[-1]
-                jx = tx + u(-6, 6) * k
-                jy = ty - u(7, 15) * k
-                jpts = spline([(tx, ty + 2 * k), ((tx + jx) * 0.5 + u(-2, 2) * k, (ty + jy) * 0.5),
+                jx = tx + u(-5, 5) * k
+                jy = ty - u(6, 13) * k
+                jpts = spline([(tx, ty + 2 * k), ((tx + jx) * 0.5 + u(-1.5, 1.5) * k, (ty + jy) * 0.5),
                                (jx, jy)])
                 jf, _ = arcfrac(jpts)
-                draw_limb(front, jpts, [max(0.7, rad[-1] * 0.9 * (1 - q)) for q in jf],
+                draw_limb(front, jpts, [max(0.7, rad[-1] * 0.85 * (1 - q)) for q in jf],
                           seed + 91, streaks=False, shari_frac=1.0)
-            for _ in range(rng.randint(1, 2)):
-                idx_j = rng.randint(int(len(pts) * 0.28), int(len(pts) * 0.72))
+            if rng.random() < 0.65:
+                idx_j = rng.randint(int(len(pts) * 0.32), int(len(pts) * 0.68))
                 bx_j, by_j = pts[idx_j]
                 js = rng.choice((-1, 1))
-                jlen = u(6, 13) * k
+                jlen = u(5, 10) * k
                 jpts = spline([(bx_j, by_j),
-                               (bx_j + js * jlen * 0.55, by_j + u(-2, 3) * k),
-                               (bx_j + js * jlen, by_j + u(-4, 4) * k)])
+                               (bx_j + js * jlen * 0.55, by_j + u(-1.5, 2.0) * k),
+                               (bx_j + js * jlen, by_j + u(-3.0, 3.0) * k)])
                 jf, _ = arcfrac(jpts)
-                r0_j = max(1.4 * k, rad[idx_j] * 0.42)
+                r0_j = max(1.3 * k, rad[idx_j] * 0.38)
                 draw_limb(front, jpts, [max(0.6, r0_j * (1 - q) ** 0.8) for q in jf],
                           seed + idx_j, streaks=False, shari_frac=1.0)
 
-    # ---- foliage clusters (attractors) ----------------------------------------
+    # ---- foliage clusters (attractors) & primary pad scaffolds ---------------
     atts = []
-    bx_l = min(cx_top, cx_bot) - Wh * (1 + asym) - 2
-    bx_r = max(cx_top, cx_bot) + Wh * (1 + asym) + 2
+    primary_paths = []
+    rx0 = (u(6, 8) if style == "forest" else u(7.5, 10.5)) * k
+    shell = rx0 * u(1.6, 2.6)
 
-    def poisson(region, n_max, spacing, tries_max, grid=None):
+    def poisson(region, n_max, spacing, tries_max, grid=None, pad_id=-1):
         cell = spacing / 1.4143
         grid = {} if grid is None else grid
         x0_, x1_, y0_, y1_ = region.bbox
@@ -1214,17 +1259,15 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                 continue
             grid[(gx, gy)] = (x, y)
             got += 1
-            atts.append(dict(x=x, y=y, rx=rx0 * u(0.78, 1.28), back=r[0], depth=r[1], tl=r[2]))
+            atts.append(dict(x=x, y=y, rx=rx0 * u(0.78, 1.25), back=r[0],
+                             depth=r[1], tl=r[2], pad_id=pad_id))
         return grid
-
-    rx0 = (u(6, 8) if style == "forest" else u(7.5, 10.5)) * k
-    shell = rx0 * u(1.6, 2.6)
 
     if mode == "tiers":
         rx0 = u(7.5, 11.0) * k
         ry0 = rx0 * u(0.26, 0.34)
         step = rx0 * u(1.15, 1.45)
-        sy = rx0 * u(0.72, 0.96)
+        sy_t = rx0 * u(0.72, 0.96)
         backp = u(0.3, 0.5)
         for (pts, rad, ey, lbk) in leaders:
             tx, ty = pts[-1]
@@ -1232,9 +1275,9 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             L = max(2 * rx0, by0 - ty)
             cd = L * cfrac
             hw_max = wr * L * shrink * (1.0 if len(leaders) == 1 else u(0.8, 1.0))
-            n_t = max(3, int(cd / sy))
+            n_t = max(3, int(cd / sy_t))
             for i in range(n_t):
-                if i > 1 and rng.random() < 0.14:
+                if i > 1 and rng.random() < 0.12:
                     continue
                 f = (i + u(0.1, 0.9)) / n_t
                 y = ty + cd * f
@@ -1246,7 +1289,7 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                     atts.append(dict(x=ax + u(-0.4, 0.4) * k, y=y,
                                      rx=max(rx0 * 0.34, hw), ry=ry0 * u(0.7, 1.0),
                                      back=lbk or rng.random() < backp * 0.3,
-                                     depth=0.0, tl=f))
+                                     depth=0.0, tl=f, pad_id=-1))
                     continue
                 sides = (-1, 1) if rng.random() > 0.15 else (rng.choice((-1, 1)),)
                 for sd in sides:
@@ -1259,43 +1302,64 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                                              rx=rx0 * u(0.85, 1.2) * taper,
                                              ry=ry0 * u(0.85, 1.2) * (0.8 + 0.2 * taper),
                                              back=lbk or rng.random() < backp * 0.4,
-                                             depth=0.0, tl=f))
+                                             depth=0.0, tl=f, pad_id=-1))
                         x += sd * step * u(0.85, 1.2)
             atts.append(dict(x=tx + u(-1, 1) * k, y=ty + ry0 * u(0.6, 1.4),
                              rx=rx0 * u(0.45, 0.7), ry=ry0 * u(0.8, 1.1), back=lbk,
-                             depth=0.0, tl=0.02))
+                             depth=0.0, tl=0.02, pad_id=-1))
     elif mode == "pads":
-        pr0 = (u(16, 22) if style == "bunjin" else u(20, 30)) * k * min(1.0, shrink ** 0.5)
-        n_tiers = rng.randint(2, 4) if style == "bunjin" else rng.randint(4, 6)
-        y_low, y_cr = y_bot - pr0 * 0.15, y_top + pr0 * 0.32
-        regions = []
+        pr0 = (u(16, 21) if style == "bunjin" else u(19, 27)) * k * min(1.0, shrink ** 0.5)
+        n_tiers = rng.randint(3, 4) if style == "bunjin" else rng.randint(4, 6)
+        y_low, y_cr = y_bot - pr0 * 0.10, y_top + pr0 * 0.34
+        dy_tier = (y_low - y_cr) / max(1, n_tiers)
+        regions = []  # (px0, py0, hw, hh, bk, leader_id, is_apex)
         s = long_side
         for i in range(n_tiers):
-            tf = i / max(1, n_tiers - 1)
-            y = y_low + (y_cr - y_low) * (tf ** 0.88 + u(-0.04, 0.04))
-            hw = pr0 * (1.22 - 0.48 * tf) * u(0.82, 1.12)
-            hh = hw * (u(0.28, 0.38) if fol_kind in ("needle", "scale", "larch") else u(0.34, 0.46))
+            tf = i / max(1, n_tiers - 1)  # 0 at bottom (ichi-no-eda), 1 near top
+            y_base = y_low - (y_low - y_cr) * (tf ** 0.90)
+            # Monotonic taper from bottom primary pad to upper pads
+            hw = pr0 * (1.20 - 0.46 * tf) * u(0.90, 1.08)
+            hh = hw * (u(0.28, 0.38) if fol_kind in ("needle", "scale", "larch") else u(0.34, 0.44))
             if style == "fukinagashi":
-                sd_list = [long_side]
-                hw *= 1.22
+                sd_list = [(long_side, 0.0)]
+                hw *= 1.18
             elif style == "bunjin":
-                sd_list = [s]
+                sd_list = [(s, 0.0)]
             else:
-                both = (i < n_tiers - 1 and rng.random() < 0.38 and half(y, 1) > 1.3 * hw)
-                sd_list = [s, -s] if both else [s]
-            for sd in sd_list:
-                reach = max(hw * 0.65, half(y, sd) * u(0.62, 0.95))
+                both = (i < n_tiers - 1 and rng.random() < 0.38)
+                # Stagger opposite pads vertically by 40% of a tier so no bar-branches form
+                sd_list = [(s, 0.0), (-s, -0.42 * dy_tier)] if both else [(s, 0.0)]
+
+            for sd, y_stagger in sd_list:
+                py_p = max(y_cr + hh * 0.5, y_base + y_stagger + u(-0.06, 0.06) * dy_tier)
+                # Anchor pad horizontally to the ACTUAL trunk coordinate at height py_p
+                li_use = 1 if (style == "twin" and sd == s2 and py_p > leaders[1][0][-1][1]) else 0
+                tx_y, _, tr_y, _ = leader_at_y(li_use, py_p)
+                reach_mult = u(0.85, 1.18) * (1.25 - 0.50 * tf)
                 if style == "fukinagashi":
-                    reach = hw * u(0.55, 1.25) * (1.2 - 0.4 * tf)
-                regions.append((cxat(y) + sd * reach, y, hw, hh, False))
+                    reach_mult = u(0.95, 1.35) * (1.20 - 0.35 * tf)
+                elif style == "slant" and sd == long_side:
+                    reach_mult *= 1.18
+                px_p = tx_y + sd * (tr_y + hw * reach_mult)
+                regions.append((px_p, py_p, hw, hh, False, li_use, False))
+
+            if rng.random() < 0.48:  # Depth pad behind trunk
+                tx_b, _, _, _ = leader_at_y(0, y_base)
+                bx_p = tx_b + (long_side * hw * 0.38 if style == "fukinagashi"
+                               else -s * hw * u(0.20, 0.55))
+                regions.append((bx_p, y_base - hh * 0.30, hw * 0.82, hh * 0.82, True, 0, False))
             s = -s
-            if rng.random() < 0.48:
-                bx_p = cxat(y) + (long_side * hw * 0.4 if style == "fukinagashi"
-                                  else u(-0.35, 0.35) * max(hw, half(y, 1)))
-                regions.append((bx_p, y - hh * 0.35, hw * 0.82, hh * 0.85, True))
 
-        regions.append((cx_top, y_cr, pr0 * u(0.88, 1.12), pr0 * u(0.36, 0.48), False))
+        # Apex crown pad directly capping each upright leader tip
+        for li_a, (pts_a, _, ey_a, lbk_a) in enumerate(leaders):
+            if ey_a < -1e8 or (style == "hankengai" and li_a == 1):
+                continue
+            tx_a, ty_a = pts_a[-1]
+            hw_a = pr0 * (u(0.92, 1.12) if li_a == 0 else u(0.72, 0.88))
+            hh_a = hw_a * u(0.36, 0.46)
+            regions.append((tx_a, ty_a - hh_a * 0.15, hw_a, hh_a, lbk_a, li_a, True))
 
+        # Semi-cascade stepping pads anchored tightly along the cascading leader
         if style == "hankengai" and len(leaders) > 1:
             c_pts = leaders[1][0]
             n_cp = rng.randint(3, 5)
@@ -1303,22 +1367,63 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                 cf = ci / n_cp
                 c_idx = min(len(c_pts) - 1, int(cf * (len(c_pts) - 1)))
                 px_c, py_c = c_pts[c_idx]
-                chw = pr0 * (0.92 - 0.30 * cf) * u(0.85, 1.08)
-                chh = chw * u(0.30, 0.40)
+                chw = pr0 * (0.90 - 0.28 * cf) * u(0.88, 1.06)
+                chh = chw * u(0.30, 0.38)
                 side_c = 1 if ci % 2 == 0 else -1
-                regions.append((px_c + side_c * chw * 0.22, py_c - chh * 0.2,
-                                chw, chh, ci % 3 == 0))
+                regions.append((px_c + side_c * chw * 0.22, py_c - chh * 0.18,
+                                chw, chh, ci % 3 == 0, 1, cf > 0.85))
 
-        for (pts, rad, ey, lbk) in leaders:
-            tx, ty = pts[-1]
-            if ey > -1e8 and not any(((tx - rx_) / hw_) ** 2 + ((ty - ry_) / hh_) ** 2 <= 1.3
-                                     for rx_, ry_, hw_, hh_, _ in regions):
-                hw = pr0 * u(0.68, 0.90)
-                regions.append((tx, ty - hw * 0.08, hw, hw * u(0.35, 0.46), False))
-
-        sp_mult = u(0.96, 1.16) if fol_kind == "larch" else u(0.88, 1.08)
+        # Build an explicit, anatomically sound Primary Branch Spline for every pad region
+        sp_mult = u(0.92, 1.08)
         grid = {}
-        for (px0, py0, hw, hh, bk) in regions:
+        for reg_id, (px0, py0, hw, hh, bk, li_r, is_apex) in enumerate(regions):
+            tx_p, ty_p, tr_p, _ = leader_at_y(li_r, py0)
+            sd_p = 1 if px0 >= tx_p else -1
+            dx_reach = abs(px0 - tx_p)
+            if is_apex or dx_reach < hw * 0.35:
+                # Apex or near-trunk pad attaches directly to the leader tip/node
+                _, _, _, orig_i = leader_at_y(li_r, min(elig, py0 + hh * 0.4))
+                PAD_ID[orig_i] = reg_id
+            else:
+                # Primary branch origin on the trunk at the proper botanical angle
+                if fol_kind in ("cloud", "fine"):
+                    y_orig = min(elig, py0 + dx_reach * u(0.16, 0.30))
+                elif fol_kind == "larch":
+                    y_orig = min(elig, max(leaders[li_r][0][-1][1] + 3 * k,
+                                           py0 + dx_reach * u(-0.08, 0.08)))
+                else:  # pinus / juniperus
+                    y_orig = min(elig, py0 + dx_reach * u(0.02, 0.16))
+                tx_o, ty_o, tr_o, orig_i = leader_at_y(li_r, y_orig)
+                x0_b = tx_o + sd_p * tr_o * 0.72
+                y0_b = ty_o
+                x2_b = px0 - sd_p * hw * 0.18
+                y2_b = py0 + hh * 0.12
+                # Smooth outward arch (never bowing sharply upward and plunging down)
+                x1_b = x0_b + (x2_b - x0_b) * u(0.45, 0.58)
+                arch_y = u(-2.2, 0.8) * k if fol_kind == "larch" else u(-1.2, 1.8) * k
+                y1_b = y0_b + (y2_b - y0_b) * 0.52 + arch_y
+                b_pts = spline([(x0_b, y0_b), (x1_b, y1_b), (x2_b, y2_b)], step=1.8)
+                prev_b = orig_i
+                b_idx = []
+                for bp_x, bp_y in b_pts[1:]:
+                    NX.append(bp_x)
+                    NY.append(bp_y)
+                    NR.append(0.0)
+                    PAR.append(prev_b)
+                    KIND.append(1)
+                    SIDE.append(sd_p)
+                    BK.append(bk)
+                    CH.append(0)
+                    LID.append(li_r)
+                    ARC.append(0.0)
+                    CONV.append(0)
+                    PAD_ID.append(reg_id)
+                    prev_b = len(NX) - 1
+                    b_idx.append(prev_b)
+                    cand.append(prev_b)
+                if b_idx:
+                    primary_paths.append((orig_i, b_idx, dict(rx=hw * 0.52, back=bk), (x0_b, y0_b)))
+
             def region(x, y, px0=px0, py0=py0, hw=hw, hh=hh, bk=bk):
                 dx, dy = (x - px0) / hw, (y - py0) / hh
                 if dy > 0.45 or dx * dx + dy * dy > 1:
@@ -1326,7 +1431,7 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                 return (bk, 0.0, (dy + 1) / 1.45)
             region.bbox = (px0 - hw, px0 + hw, py0 - hh, py0 + hh)
             n = int(hw * hh * 2.9 / (rx0 * rx0)) + 3
-            grid = poisson(region, n, rx0 * sp_mult, n * 30, grid)
+            grid = poisson(region, n, rx0 * sp_mult, n * 30, grid, pad_id=reg_id)
     elif style == "forest":
         crowns = []
         for (pts, rad, ey, bk) in leaders:
@@ -1345,40 +1450,54 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                 if dep < shell and not bk:
                     return (False, dep, (dy + 1) / 1.7)
                 return (True, dep, (dy + 1) / 1.7) if rng.random() < 0.5 else None
-            region.bbox = (qx - cwd, qx + cwd, py_0 := qy - chh, qy + chh)
+            region.bbox = (qx - cwd, qx + cwd, qy - chh, qy + chh)
             n = int(cwd * chh * 3.0 / (rx0 * rx0)) + 2
             grid = poisson(region, n, rx0 * u(0.82, 0.96), n * 30, grid)
-    else:
-        topy = {}
-        for xi in range(int(bx_l), int(bx_r) + 1):
-            for yi in range(int(y_top), int(y_bot) + 1):
-                if inside(xi + 0.5, yi + 0.5):
-                    topy[xi] = yi
-                    break
-        backp = u(0.25, 0.48)
-        airy = (fol_kind in ("fine", "larch")) or (style == "slant" and rng.random() < 0.6)
+    else:  # dome (broom & rounded deciduous crowns)
+        grid = {}
+        # Anchor clusters directly on broom branch tips first
+        if style == "broom":
+            for tx_b, ty_b, ang_b, _, bk_b in broom_tips:
+                tl_b = max(0.0, min(1.0, (ty_b - y_top) / ch))
+                atts.append(dict(x=tx_b, y=ty_b, rx=rx0 * u(0.95, 1.25),
+                                 back=bk_b, depth=0.0, tl=tl_b, pad_id=-1))
+        # Fill the rounded umbrella dome volume (with arched underside, never a flat skirt)
+        cy_dome = y_top + ch * 0.56
+        ry_up = ch * 0.56
+        ry_dn = ch * 0.42
+        backp = u(0.28, 0.45)
 
         def region(x, y):
             c0 = cxat(y)
-            dh = half(y, 1 if x >= c0 else -1) - abs(x - c0)
-            if dh < 0:
+            hw_d = Wh * (1 + asym * (1 if x >= c0 else -1) * long_side)
+            dx = (x - c0) / max(1.0, hw_d)
+            dy = (y - cy_dome) / (ry_up if y <= cy_dome else ry_dn)
+            # Umbrella arch at the base of the crown so the bottom curves up toward the fork
+            arch_lift = 0.22 * (1.0 - min(1.0, dx * dx * 1.4))
+            if dy > 0.78 - arch_lift:
                 return None
-            if airy and abs(x - c0) < 0.22 * Wh and (y - y_top) > 0.55 * ch:
-                if h2(int(x / 8), int(y / 6), seed + 55) < 0.55:
-                    return None
-            dep = min(dh, y - topy.get(int(x), y))
+            rho = math.hypot(dx, dy)
+            if rho > 1.0:
+                return None
+            # Leave small natural air pockets in the lower core to glimpse the Y-forks
+            if rho < 0.38 and dy > 0.05 and h2(int(x / 7), int(y / 7), seed + 61) < 0.55:
+                return None
+            dep = (1.0 - rho) * min(hw_d, ry_up)
             tl = (y - y_top) / ch
-            if dep < shell:
+            if rho > 0.62:
                 return (False, dep, tl)
-            return (True, dep, tl) if rng.random() < backp else None
+            return (rng.random() < backp, dep, tl)
+
+        bx_l = min(cx_top, cx_bot) - Wh * (1 + asym) - 2
+        bx_r = max(cx_top, cx_bot) + Wh * (1 + asym) + 2
         region.bbox = (bx_l, bx_r, y_top, y_bot)
-        poisson(region, 300, rx0 * (u(0.95, 1.12) if airy else u(0.82, 1.0)), 14000)
+        poisson(region, 260, rx0 * u(0.84, 0.98), 14000, grid)
 
     # ---- grow the branch skeleton towards the clusters -------------------------
-    trunk_pen = 1.0 if mode in ("pads", "tiers") else u(1.25, 1.6)
-    gap = (7.5 if mode == "pads" else 3.0 if mode == "tiers" else 5.0) * k
+    trunk_pen = 1.0 if mode in ("pads", "tiers") else u(1.15, 1.45)
+    gap = (6.5 if mode == "pads" else 3.0 if mode == "tiers" else 4.5) * k
     r_tw = 0.75 * k
-    prim = u(0.38, 0.52) if mode == "pads" else u(0.24, 0.36)
+    prim = u(0.36, 0.48) if mode == "pads" else u(0.24, 0.34)
 
     def near_trunk(a):
         return min(trunk_idx, key=lambda i: (NX[i] - a["x"]) ** 2 + (NY[i] - a["y"]) ** 2)
@@ -1388,36 +1507,49 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
         a["side"] = 1 if a["x"] >= NX[t] else -1
         a["dist"] = math.hypot(NX[t] - a["x"], NY[t] - a["y"])
     atts.sort(key=lambda a: a["dist"])
-    used, paths = [], []
+    used = []
+    paths = list(primary_paths)
     for a in atts:
         ax, ay, sa, bk = a["x"], a["y"], a["side"], a["back"]
+        pid = a.get("pad_id", -1)
         best, bc = -1, 1e18
         for i in cand:
+            # Strict pad ownership: attractors in a pad only connect to that pad's scaffold
+            if pid >= 0 and PAD_ID[i] != pid:
+                continue
             dx, dy = ax - NX[i], ay - NY[i]
             d = math.hypot(dx, dy)
             if d < 0.5:
                 continue
+            # Hard geometric guardrails: forbid vertical downward drops or inward backtracking
+            if KIND[i] == 1:
+                if dy > 2.5 * k and abs(dx) < 0.95 * dy:
+                    continue
+                if style != "fukinagashi" and dx * SIDE[i] < -2.0 * k:
+                    continue
+            if mode == "dome" and dy > 3.5 * k:
+                continue
             cst = d
             down = dy / d
-            if down > 0.3 + droop:
-                cst *= 1 + 2.0 * (down - 0.3 - droop)
+            if down > 0.25 + droop:
+                cst *= 1 + 2.5 * (down - 0.25 - droop)
             if KIND[i] == 0:
                 cst *= trunk_pen
                 if CONV[i] == sa:
-                    cst *= 0.72
+                    cst *= 0.75
                 elif CONV[i] == -sa:
-                    cst *= 1.35
+                    cst *= 1.30
                 if d > 14 * NR[i]:
                     cst *= 1 + 0.5 * (d / (14 * NR[i]) - 1)
                 for lid, arc in used:
                     if lid == LID[i] and abs(arc - ARC[i]) < gap:
-                        cst *= 2.3
+                        cst *= 2.2
                         break
             else:
-                if SIDE[i] != sa and style != "fukinagashi":
+                if SIDE[i] != sa and style != "fukinagashi" and pid < 0:
                     cst *= 3.0
-                if d > 22 * k:
-                    cst *= 1 + 0.6 * (d / (22 * k) - 1)
+                if d > 20 * k:
+                    cst *= 1 + 0.7 * (d / (20 * k) - 1)
                 if BK[i] != bk:
                     cst *= 1.4
                 cst *= 1 + 0.35 * CH[i]
@@ -1431,11 +1563,10 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             x0 += (ax - x0) / d0 * NR[best] * 0.75
             y0 += (ay - y0) / d0 * NR[best] * 0.75
         d = max(1.0, math.hypot(ax - x0, ay - y0))
-        tt = u(0.35, 0.62)
-        mx, my = x0 + (ax - x0) * tt, y0 + (ay - y0) * tt
-        w = u(-0.15, 0.15) * d * (1.35 if species in ("pinus", "juniperus") else 1.0)
-        mx += -(ay - y0) / d * w
-        my += (ax - x0) / d * w + droop * d * (1.0 if KIND[best] == 0 else 0.6)
+        tt = u(0.40, 0.58)
+        # Consistent upward/downward arch regardless of whether branch is on left or right
+        mx = x0 + (ax - x0) * tt
+        my = y0 + (ay - y0) * tt + u(-0.10, 0.10) * d + droop * d * 0.35
         nseg = max(2, int(d / 2))
         prev, idx = best, []
         for j in range(1, nseg + 1):
@@ -1451,6 +1582,7 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             LID.append(LID[best])
             ARC.append(0.0)
             CONV.append(0)
+            PAD_ID.append(pid)
             prev = len(NX) - 1
             idx.append(prev)
             cand.append(prev)
@@ -1459,22 +1591,22 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             used.append((LID[best], ARC[best]))
         paths.append((best, idx, a, (x0, y0)))
 
-    # Pipe model: limb thickness proportional to supported foliage
+    # Pipe model: limb thickness proportional to supported foliage, strictly capped
     wgt = [0.0] * len(NX)
     for start, idx, a, _ in paths:
-        wv = max(1.0, (a["rx"] / (5.0 * k)) ** 2)
+        wv = max(0.8, (a["rx"] / (5.5 * k)) ** 2)
         j = idx[-1]
         while j >= 0 and KIND[j] == 1:
             wgt[j] += wv
             j = PAR[j]
     for j in range(len(NX)):
         if KIND[j] == 1:
-            NR[j] = max(0.8, r_tw * math.sqrt(wgt[j]))
+            NR[j] = max(0.8, r_tw * (wgt[j] ** 0.42))
     for start, idx, a, p0 in paths:
-        cap = NR[start] * (0.62 if KIND[start] == 0 else 0.85)
+        cap = NR[start] * (0.52 if KIND[start] == 0 else 0.82)
         ln = math.hypot(NX[idx[-1]] - NX[start], NY[idx[-1]] - NY[start])
         r0 = min(cap, max(NR[idx[0]], NR[start] * (prim if KIND[start] == 0 else 0.5),
-                          0.035 * ln if KIND[start] == 0 else 0.0))
+                          0.032 * ln if KIND[start] == 0 else 0.0))
         for m_, j in enumerate(idx):
             f_ = m_ / max(1, len(idx) - 1)
             NR[j] = min(cap, max(NR[j], r0 * (1 - f_) + NR[j] * f_))
@@ -1495,12 +1627,13 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
             elif g > 0.75 and f > 0.35 and v[1] < 3:
                 buf[(x, y)] = (v[0], v[1] + 1)
 
-    turn = u(0.3, 0.88) if tip_ramp else 0.0
+    turn = u(0.35, 0.85) if tip_ramp else 0.0
 
     # ---- foliage pads ------------------------------------------------------------
     pads = []
     wind_shear = (0.45 * long_side) if style == "fukinagashi" else 0.0
-    for start, idx, a, _ in paths:
+    # Only spawn foliage pads on attractor paths (skip bare primary branch scaffolds)
+    for start, idx, a, _ in paths[len(primary_paths):]:
         x, y, rx = NX[idx[-1]], NY[idx[-1]], a["rx"]
         if style == "fukinagashi":
             rx *= 1.25
@@ -1535,7 +1668,7 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
         if fol_kind in ("needle", "scale"):
             ryt, ryb = rx * u(0.46, 0.60), rx * u(0.24, 0.36)
         elif fol_kind == "larch":
-            ryt, ryb = rx * u(0.48, 0.64), rx * u(0.38, 0.52)
+            ryt, ryb = rx * u(0.48, 0.62), rx * u(0.32, 0.45)
         else:
             ryt, ryb = rx * u(0.58, 0.74), rx * u(0.40, 0.54)
         p = Pad(x, y, rx, ryt, ryb, bias, a["back"])
@@ -1544,23 +1677,22 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
         p.tip_ramp = tip_ramp
         if tip_ramp and fol_kind == "larch":
             adv = turn * (0.45 + 0.55 * (1 - a["tl"])) * u(0.75, 1.25)
-            p.tip_start = max(0.18, 1.05 - 1.10 * adv)
+            p.tip_start = max(0.22, 1.05 - 1.05 * adv)
         p.grad = 0.55
         pads.append(p)
 
-    # Fine drooping branchlets peeking out below pads (especially visible on larch & zelkova)
+    # Subtle twig tips peeking out below pads
     if mode == "pads" or fol_kind in ("fine", "larch"):
-        twig_prob = 0.42 if fol_kind == "larch" else 0.32 if fol_kind == "fine" else 0.18
+        twig_prob = 0.30 if fol_kind == "larch" else 0.22 if fol_kind == "fine" else 0.15
         for p in pads:
             if p.back or rng.random() > twig_prob:
                 continue
-            for _ in range(rng.randint(1, 3 if fol_kind == "larch" else 2)):
-                x0 = p.cx + u(-0.6, 0.6) * p.rx
-                y0 = p.cy + p.ryb * 0.2
-                dx_tw = rng.choice((-1, 1)) * u(1.5, 4.5) * k
-                dy_tw = u(4.5, 8.5) * k if fol_kind == "larch" else u(3.0, 5.5) * k
-                tw = spline([(x0, y0), (x0 + dx_tw * 0.6, y0 + dy_tw * 0.55), (x0 + dx_tw, y0 + dy_tw)])
-                draw_limb(front, tw, [0.8] * len(tw), seed, streaks=False)
+            x0 = p.cx + u(-0.45, 0.45) * p.rx
+            y0 = p.cy + p.ryb * 0.25
+            dx_tw = rng.choice((-1, 1)) * u(1.5, 4.0) * k
+            dy_tw = u(3.5, 6.0) * k if fol_kind == "larch" else u(2.5, 4.5) * k
+            tw = spline([(x0, y0), (x0 + dx_tw * 0.55, y0 + dy_tw * 0.55), (x0 + dx_tw, y0 + dy_tw)])
+            draw_limb(front, tw, [0.8] * len(tw), seed, streaks=False)
 
     # Leaf colour per pad
     nph = (u(0, TAU), u(0, TAU))
@@ -1641,6 +1773,8 @@ def build_scene(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
                 r_span = rng.uniform(9, 22) * k * (0.5 if style == "forest" else 1.0) * min(1.0, shrink)
                 if style in ("slant", "fukinagashi", "hankengai") and s == -long_side:
                     r_span *= 1.35
+                elif style == "broom":
+                    r_span *= 1.25
                 x1 = bx0 + s * (br + r_span)
                 pts = spline([(x0, soil_top(x0) - 1.6 * k),
                               ((x0 + x1) / 2, soil_top((x0 + x1) / 2) - 1.0 * k),
