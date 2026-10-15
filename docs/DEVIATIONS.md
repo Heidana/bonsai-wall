@@ -37,6 +37,16 @@ Status is `proposed` until the user approves at a gate; Gate 1 was approved on 2
 - **Empty-pool fallback:** when `--season S` leaves a species with no leaf key for `S` (larix summer), use the nearest other season's keys in the order spring, autumn. For larix summer that gives `fresh`, which is a green needle ramp.
 - **Default path:** `choose_look` draws exactly as V1 whenever `--season` is not given. When it is given, the restriction only filters the leaf pool after the same draw count is made, so no other look field moves. Winter draws a leaf from the species' normal pool (it is not rendered for deciduous trees).
 
-## Added after Gate 1
+## Added after Gate 1 (Phase 1)
 
-None yet.
+| # | Topic | What changed vs the spec or the Gate 1 IR | Reason | Status |
+| --- | --- | --- | --- | --- |
+| D14 | IR `bounds` | `TreeScene` has no `bounds` field. The rendered `Scene` carries `xmin xmax crown_top` | Exact bounds exist only after pad sprites are baked, which is the renderer's job; V1's retry loop needs them and V2 asserts them | informational |
+| D15 | IR `depth` and `order` | V1 strokes leave `depth` empty (`()`). `order` is 0 leader, 1 branch attached to a leader (or jin), 2 branch attached to a branch, 3 twig | V1 has no view depth; the orders let `metrics.py` find primaries | informational |
+| D16 | Front-limb layer name | Stroke layers are `back`, `front`, `over`; `over` is the D5 layer | D5 | informational |
+| D17 | Run line and `--engine` | `--engine v1\|v2` exists; `v2` exits with "not implemented yet". The V1 run line is unchanged (no engine, origin, years fields yet) | Those fields have no value until V2 exists; V1 output stays byte-identical | proposed: add in P2 |
+| D18 | Harness name | The spec's `tools/harness.py` is not created yet; `tools/baseline_v1.py` is the V1 harness and `bonsai_wall/metrics.py` holds the shared metrics | V2 sweeps arrive with P2 | informational |
+| D19 | Root script kept | `bonsai-wall.py` stays at the repository root, untouched, as the golden reference. `tests/test_goldens.py` fails if its git blob hash changes | Rule 2 and the exit check "identical vs the untouched script" | proposed: delete only when you approve V1 removal |
+| D20 | Variety targets | Under the approved canonical metric, 29 of 36 combos hit the cross-style ceiling, so per-combo targets run from 1.06 x to 1.5 x V1 (median 1.27 x) instead of a flat 1.5 x (table in the baseline summary). V1 within-style distances (about 0.28-0.65) are already close to the between-style distances (about 0.54-0.75) | The ceiling definition you approved; the metric saturates because pad extents jitter a lot | needs your decision at Gate 2: keep the ceiling as defined, or relax it |
+| D21 | V1 acer = zelkova | For the same seed and style, V1's acer and zelkova trees have identical structure; only the pad renderer and colours differ (identical medians in every metric) | V1 shares one builder path and one RNG order | informational; V2 gives each species its own biology |
+| D22 | Cascade vs stand | Measured: 0 of 60 V1 semi-cascades overlap the stand (min clearance 6.7 px, min canvas clearance 36.7 px). 11 of 60 have foliage inside the pot rectangle; cascade limbs cross the pot by design (V1 re-stamps them over the rim) | The spec lists "cascades hitting the stand" as a V1 miss; the data shows the stand is not hit, the pot is | informational |
