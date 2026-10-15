@@ -3,7 +3,7 @@
 Procedurally grown, animated pixel-art bonsai wallpapers for Hyprland and other
 Wayland compositors, displayed with [awww](https://codeberg.org/LGFae/awww).
 
-![An animated Japanese maple bonsai swaying in the wind](screenshots/demo.gif)
+![An animated pinus bunjin, goyomatsu foliage, ink backdrop, clay pot](screenshots/bonsai-29-1920x1080.gif)
 
 Every run grows a new tree: a species, an architecture, a crown shape, a branch
 structure grown to reach its foliage, and a pot, stand and backdrop chosen to
