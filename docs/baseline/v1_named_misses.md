@@ -1,0 +1,21 @@
+# V1's named misses, measured
+
+The spec lists six things V1 does badly. Each line below is what the measurements say, with numbers.
+Source: `v1_baseline_summary.md` (1080 renders at 640x360 art, 30 seeds per species x style combo), measured by
+`bonsai_wall/metrics.py` from V1's `TreeScene` IR, so V2 can be compared on the same definitions.
+Decision ids point to `docs/DEVIATIONS.md`. These are baseline values for V2's style bands, not pass/fail limits.
+
+| Miss | Verdict | Numbers | Consequence for V2 |
+| --- | --- | --- | --- |
+| Windswept reads as slanting | Not a lean problem. The lean ranges overlap; the leeward share and primary clustering separate the two styles | Lean p10 / p50 / p90: windswept 14.0 / 19.0 / 26.1 deg, slanting 8.5 / 13.8 / 19.4 deg. Leeward foliage share p10 / p50 / p90: windswept 0.98 / 1.00 / 1.00, slanting 0.70 / 0.77 / 0.88. Largest 60-degree window of primary angles: windswept 0.88 / 0.94 / 1.00, slanting 0.49 / 0.57 / 0.67 | Windswept bands rest on `leeward` and `primary_window_60`; lean is a sanity check only (D23) |
+| Corkscrew literati trunks | Confirmed, once the swing is measured against trunk thickness. Counts of bends and sharpest turn do not show it | Bend swing per unit base radius (`bend_amp_over_r`) p50 / p90: bunjin 1.5 / 1.9. Every other style at p90: clump 1.2, moyogi 1.1, twin 1.1, hankengai 0.8, slant 0.8, fukinagashi 0.9, forest 0.7, chokkan 0.1, broom 0.0. Bunjin bends p50 / p90 2 / 3, sharpest turn over 4 px p50 / p90 8.0 / 13.6 deg (moyogi 12.8 / 19.8, so turn angle alone does not separate them). Bunjin height over base diameter p50 12.0 | Add a cap on `bend_amp_over_r` besides the kink limit; set the value from the first V2 sheets (D24) |
+| Thick apex | Confirmed for the apex foliage pad, not for the trunk tip | Apex pad width over median pad width p50 / p90: 0.90-1.02 / 1.12-1.19 across styles (the topmost pad is as wide as a typical pad). Bunjin apex pad is 0.18 of the crown width (p90 0.21). Trunk tip radius over base radius is small: 0.09-0.19 for single-leader styles (chokkan 0.09, bunjin 0.19), 1.1-2.2 px tip radius | Report `apex_pad_ratio` at Gate 2; set its band from the first sheets (D25) |
+| Cascades hitting the stand | Not confirmed | 60 semi-cascades (pinus, juniperus): 0 overlap the stand; stand clearance min / p10 / p50 6.7 / 12.0 / 19.6 px; canvas-bottom clearance min / p50 36.7 / 56.6 px. 11 of 60 put foliage inside the pot rectangle, and cascade limbs cross the pot by design (V1 re-stamps them over the rim). Non-cascade styles: 2 of 1020 overlap the stand (forest on rock-slab pots, 1 and 3 px) | Remove from V1's misses; keep the V2 band (no overlap with stand or canvas edge) as a guard (D22, D29) |
+| No inner thinning | Not measurable on V1: the numbers come from pad extents, which cannot show gaps inside a pad | Coverage of the inner crown core over the outer shell by species: acer 1.12, zelkova 1.13, dawn redwood 1.30 (core denser than the shell); pine 0.78, larch 0.76, juniper 0.83 (core thinner). Core covered p50: 0.83 / 0.92 / 0.63 / 0.36 / 0.36 / 0.38 in the same order | No V2 improvement is claimed until an `interior_light` metric from the light grid measures one (D26) |
+| Rounded larch forests | Not measured. V1 larch forest is a `dome`-mode crown over several trunks (228 pads at p50), but no roundness metric exists yet | Larch forest: width over height p50 1.75, negative space 0.44, apex offset -0.013, core / shell coverage in the larch row above | Gate 3 (forest styles arrive in P4); define a conical-crown metric then |
+
+## Other V1 facts worth keeping next to these
+
+- Trunk taper (radius at 0.05 H over radius at 0.7 H) is below 2.0 in 0 of 90 chokkan, 0 of 90 bunjin and 0 of 180 moyogi trees (p50 4.0, 2.7, 3.4), so the spec's chokkan band (taper >= 2.0) is met by all V1 chokkan. Exceptions: forest 2 of 120, and broom 60 of 60, whose `strokes[0]` ends at the fork (0.3 H) so the number describes the lower trunk only.
+- V1 acer and zelkova are structurally identical for a given seed and style (identical medians in every metric); only pad renderer and colour differ (D21).
+- V1 rescales the design to fit in 27 of 1404 renders (1.9%); 12 end shrunk, 3 end with under 2 px side margin (D7).

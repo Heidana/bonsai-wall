@@ -178,8 +178,13 @@ def scene_metrics(scene):
     lowest = max(low_stroke, low_pad)
     sx0 = int(lay.xc - lay.stand_w / 2)
     sx1 = int(lay.xc + lay.stand_w / 2)
-    stand_ov = int(tree[lay.stand_top:, max(0, sx0):sx1 + 1].sum())
     px0, px1 = int(lay.xc - lay.pot_w / 2), int(lay.xc + lay.pot_w / 2)
+    # V1's renderer drops limb pixels below the rim inside the pot's width (the pot hides them;
+    # trunk base flare reaches past the pot in shallow pots). Semi-cascades are re-stamped over the pot.
+    visible = limb.copy()
+    if scene.meta.get("style") != "hankengai":
+        visible[lay.rim_top + 1:, max(0, px0):px1 + 1] = False
+    stand_ov = int((visible | fol)[lay.stand_top:, max(0, sx0):sx1 + 1].sum())
     pot_rows = slice(lay.rim_top, lay.pot_bot - lay.feet)
     pad_in_pot = int(fol[pot_rows, max(0, px0):px1 + 1].sum())
 
@@ -191,6 +196,11 @@ def scene_metrics(scene):
         b = min(ANG_BINS - 1, int((ang + math.pi) / math.tau * ANG_BINS))
         hist[b] += math.hypot(dx, dy)
     hist = hist / hist.sum() if hist.sum() else hist
+    window60 = max(float(sum(hist[(i + j) % ANG_BINS] for j in range(4))) for i in range(ANG_BINS))
+    # leeward = the side the crown leans to; share of foliage area on that side of the trunk base
+    cols = np.arange(W)
+    side_mask = (cols > xb) if apex_x >= xb else (cols < xb)
+    leeward = float(fol[:, side_mask].sum()) / max(1, int(fol.sum()))
 
     box = (round(xb - tree_h), round(yb - tree_h), round(xb + tree_h), round(yb + 0.5 * tree_h))
     grid = np.asarray(Image.fromarray((tree * 255).astype(np.uint8)).crop(box).resize(
@@ -210,7 +220,7 @@ def scene_metrics(scene):
         bend_amp_over_r=bend_amp / max(0.1, r_base), height_over_base_d=tree_h / max(0.2, 2 * r_base),
         apex_pad_w_over_crown=apex_w / max(1.0, float(xs.max() - xs.min() + 1)),
         apex_pad_w_over_median=apex_w / max(1.0, float(np.median([2 * p.rx for p in scene.pads]))),
-        max_turn_deg=max_turn, twist_deg_per_100px=total_turn / max(1.0, tlen) * 100,
+        leeward=leeward, primary_window_60=window60, max_turn_deg=max_turn, twist_deg_per_100px=total_turn / max(1.0, tlen) * 100,
         inner_cover=core_cov, shell_cover=shell_cov,
         inner_open=1 - core_cov if core_cov == core_cov else float("nan"),
         lowest_y=lowest, canvas_clear=(H - 1) - lowest, stand_clear=lay.stand_top - lowest,

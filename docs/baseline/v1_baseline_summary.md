@@ -96,6 +96,14 @@ Per style, pooled over species (all 30 seeds each). These are baseline values fo
 | slant | 120 | 8.5 / 13.8 / 19.4 | -0.169 | 0.245 |
 | fukinagashi | 90 | 14.0 / 19.0 / 26.1 | -0.203 | 0.344 |
 
+Bands for windswept rest on these two (lean is a sanity check only): `leeward` = share of foliage area on the side the crown leans to; `window60` = largest share of length-weighted primary angles inside any 60 degree window.
+
+| style | n | leeward p10 / p50 / p90 | window60 p10 / p50 / p90 |
+| --- | --- | --- | --- |
+| slant | 120 | 0.70 / 0.77 / 0.88 | 0.49 / 0.57 / 0.67 |
+| fukinagashi | 90 | 0.98 / 1.00 / 1.00 | 0.88 / 0.94 / 1.00 |
+| moyogi | 180 | 0.44 / 0.53 / 0.64 | 0.45 / 0.53 / 0.65 |
+
 ### Corkscrew trunks
 
 Main trunk only (`strokes[0]`). `bends` = lateral lobes > 2 px off the base-apex chord; `amp / r` = mean lobe amplitude over the trunk base radius (how far the trunk swings compared with its own thickness, which is what makes a slender literati trunk read as a corkscrew); `H / base D` = tree height over trunk base diameter (spec bunjin band: >= 12); turns are measured over 4 px steps.
@@ -164,7 +172,7 @@ Broom's `strokes[0]` ends at the fork (0.3 H), so its taper and apex columns bel
 | scope | n | stand clear px min / p10 / p50 | canvas clear px min / p50 | stand overlap > 0 | foliage inside pot rect > 0 |
 | --- | --- | --- | --- | --- | --- |
 | hankengai (pinus, juniperus) | 60 | 6.7 / 12.0 / 19.6 | 36.7 / 56.6 | 0 | 11 |
-| all other styles | 1020 | -4.4 / 3.9 / 64.5 | 28.1 / 99.8 | 52 | 0 |
+| all other styles | 1020 | -4.4 / 3.9 / 64.5 | 28.1 / 99.8 | 2 | 0 |
 
 ## Layout the tree was fitted to (median over seeds 1-30, art px at 640x360)
 

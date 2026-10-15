@@ -381,6 +381,16 @@ def cmd_summary():
         ln = [fl(r, "lean_deg") for r in rs]
         A(f"| {st} | {len(rs)} | {pct(ln, 10):.1f} / {pct(ln, 50):.1f} / {pct(ln, 90):.1f} | "
           f"{med(rs, 'apex_offset'):+.3f} | {statistics.median(abs(fl(r, 'apex_offset')) for r in rs):.3f} |")
+    A("\nBands for windswept rest on these two (lean is a sanity check only): `leeward` = share of "
+      "foliage area on the side the crown leans to; `window60` = largest share of length-weighted "
+      "primary angles inside any 60 degree window.\n")
+    A("| style | n | leeward p10 / p50 / p90 | window60 p10 / p50 / p90 |\n| --- | --- | --- | --- |")
+    for st in ("slant", "fukinagashi", "moyogi"):
+        rs = [r for r in main if r["style"] == st]
+        lw = [fl(r, "leeward") for r in rs]
+        w6 = [fl(r, "primary_window_60") for r in rs]
+        A(f"| {st} | {len(rs)} | {pct(lw, 10):.2f} / {pct(lw, 50):.2f} / {pct(lw, 90):.2f} | "
+          f"{pct(w6, 10):.2f} / {pct(w6, 50):.2f} / {pct(w6, 90):.2f} |")
     A("\n### Corkscrew trunks\n")
     A("Main trunk only (`strokes[0]`). `bends` = lateral lobes > 2 px off the base-apex chord; `amp / r` = "
       "mean lobe amplitude over the trunk base radius (how far the trunk swings compared with its own "
