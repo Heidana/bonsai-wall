@@ -2,6 +2,8 @@
 
 **This file takes precedence over the spec wherever the two conflict.**
 
+Process: every newly approved deviation updates `docs/BONSAI_V2_SPEC.md` in the same commit as this file.
+
 Running log. Each entry: what the spec says, what V1 or the measurements show, what is proposed.
 Status is `proposed` until the user approves at a gate; Gate 1 was approved on 2026-10-15 with the amendments recorded below. Numbers come from `docs/baseline/v1_baseline_summary.md`.
 
@@ -37,6 +39,31 @@ Status is `proposed` until the user approves at a gate; Gate 1 was approved on 2
 - **Empty-pool fallback:** when `--season S` leaves a species with no leaf key for `S` (larix summer), use the nearest other season's keys in the order spring, autumn. For larix summer that gives `fresh`, which is a green needle ramp.
 - **Default path:** `choose_look` draws exactly as V1 whenever `--season` is not given. When it is given, the restriction only filters the leaf pool after the same draw count is made, so no other look field moves. Winter draws a leaf from the species' normal pool (it is not rendered for deciduous trees).
 
-## Added after Gate 1
+## Added after Gate 1 (Phase 1)
 
-None yet.
+D14-D22 were accepted as a block at Phase 1 acceptance (2026-10-15), on one condition: `TreeScene` has no bounds field, so the V2 path needs a bounds validator over strokes and pads (D28).
+
+| # | Topic | What changed vs the spec or the Gate 1 IR | Reason | Status |
+| --- | --- | --- | --- | --- |
+| D14 | IR `bounds` | `TreeScene` has no `bounds` field. The rendered `Scene` carries `xmin xmax crown_top` | Exact bounds exist only after pad sprites are baked, which is the renderer's job; V1's retry loop needs them and V2 asserts them | informational |
+| D15 | IR `depth` and `order` | V1 strokes leave `depth` empty (`()`). `order` is 0 leader, 1 branch attached to a leader (or jin), 2 branch attached to a branch, 3 twig | V1 has no view depth; the orders let `metrics.py` find primaries | informational |
+| D16 | Front-limb layer name | Stroke layers are `back`, `front`, `over`; `over` is the D5 layer | D5 | informational |
+| D17 | Run line and `--engine` | `--engine v1\|v2` exists; `v2` exits with "not implemented yet". The V1 run line is unchanged (no engine, origin, years fields yet) | Those fields have no value until V2 exists; V1 output stays byte-identical | **approved**: add engine, origin, years and care fields to the V2 run line in Phase 2 (care shows `none` until the maintainer exists) |
+| D18 | Harness name | The spec's `tools/harness.py` is not created yet; `tools/baseline_v1.py` is the V1 harness and `bonsai_wall/metrics.py` holds the shared metrics | V2 sweeps arrive with P2 | informational |
+| D19 | Root script kept | `bonsai-wall.py` stays at the repository root, untouched, as the golden reference. `tests/test_goldens.py` fails if its git blob hash changes | Rule 2 and the exit check "identical vs the untouched script" | accepted; delete only when you approve V1 removal |
+| D20 | Variety targets | Under the approved canonical metric, 29 of 36 combos hit the cross-style ceiling, so per-combo targets run from 1.06 x to 1.5 x V1 (median 1.27 x) instead of a flat 1.5 x (table in the baseline summary). V1 within-style distances (about 0.28-0.65) are already close to the between-style distances (about 0.54-0.75) | The ceiling definition you approved; the metric saturates because pad extents jitter a lot | **decided**: keep the capped targets as defined, no relaxation. Report variety informationally at Gate 2 and enforce at Gate 3 (D27) |
+| D21 | V1 acer = zelkova | For the same seed and style, V1's acer and zelkova trees have identical structure; only the pad renderer and colours differ (identical medians in every metric) | V1 shares one builder path and one RNG order | agreed, no action; V2 gives each species its own biology. A cross-species distinctness check is added at Gate 3 (D27) |
+| D22 | Cascade vs stand | Measured: 0 of 60 V1 semi-cascades overlap the stand (min clearance 6.7 px, min canvas clearance 36.7 px). 11 of 60 have foliage inside the pot rectangle; cascade limbs cross the pot by design (V1 re-stamps them over the rim) | The spec lists "cascades hitting the stand" as a V1 miss; the data does not confirm it | **approved**: removed from V1's misses in the spec; the V2 band (no overlap with the stand or the canvas edge) stays |
+
+### Corrections from the Phase 1 measurements (approved at Phase 1 acceptance)
+
+| # | Topic | Change | Evidence | Status |
+| --- | --- | --- | --- | --- |
+| D23 | Windswept bands | Windswept bands rest on leeward foliage share and primary-azimuth clustering. Lean is a sanity check only | V1 lean ranges overlap (windswept p10/p50/p90 14.0/19.0/26.1 deg, slanting 8.5/13.8/19.4). Leeward share and 60-degree primary window separate them (windswept 1.00 and 0.94 at p50, slanting 0.77 and 0.57) | **approved** |
+| D24 | Corkscrew cap | Add a cap on trunk bend swing per unit base radius (`bend_amp_over_r`), in addition to the kink limit. The cap value is set from the first V2 sheets | V1 bunjin 1.5 x median, 1.9 x p90. Other styles at p90: clump 1.2, moyogi 1.1, twin 1.1, the rest <= 0.9 (the Phase 1 acceptance note said <= 1.1 for all other styles; clump measures 1.2) | **approved** |
+| D25 | Apex pad ratio | Add `apex_pad_ratio` (apex pad width / median pad width) to the harness and report it at Gate 2; the band is set from the first sheets | V1: p50 0.90-1.02 and p90 1.12-1.19 by style; bunjin apex pad is 18% of the crown width (p90 21%) | **approved** |
+| D26 | Inner thinning claim | V1's inner-thinning numbers come from pad extents and cannot see inside pads, so no V2 improvement is claimed until an interior-light metric (core vs shell mean exposure Q from the light grid) measures it | V1 core/shell coverage by species: acer 1.12, zelkova 1.13, dawn redwood 1.30, pine 0.78, larch 0.76, juniper 0.83 (pad extents) | **approved** |
+| D27 | Variety schedule | Gate 2: report variety informationally for the Phase 2 species, plus within-style spread vs V1. Gate 3: enforce the capped targets, counting only seeds that pass the style bands, and add a cross-species distinctness check (D21) | D20, D21 | **approved** |
+| D28 | Bounds validator | The V2 path validates bounds over strokes and pads (no `bounds` field on `TreeScene`, D14). This implements D7's bounds assertion. Built in Phase 2 | D7, D14 | **approved** |
+| D29 | Stand-overlap metric | `stand_overlap_px` mirrors V1's renderer: limb pixels below the rim inside the pot width are hidden by the pot and are not counted (except for semi-cascades, which V1 re-stamps over the pot). Before this fix 52 of 1020 non-cascade renders showed overlap, all trunk-base flare discs hidden behind shallow pots; after it, 2 of 1020 (forest on rock-slab pots, 1 and 3 px) | The fix is in `bonsai_wall/metrics.py` | informational |
+

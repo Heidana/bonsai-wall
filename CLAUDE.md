@@ -23,3 +23,5 @@ Stop at every GATE and report what was built, measured numbers vs budgets,
 contact-sheet paths, deviations with reasons, and up to 5 open questions. Log
 every parameter change with its reason in docs/TUNING.md. Do not start the next
 phase without approval.
+
+Start every session by reading docs/STATE.md. Update it at the end of every work session and at every gate.

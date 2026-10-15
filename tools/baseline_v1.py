@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Phase 0 baseline harness for V1 (bonsai-wall.py, imported unmodified).
+"""Baseline harness for V1.
 
-Measures V1 on this machine so V2 budgets have a real reference:
-  sweep    in-process: gif size, palette peak, changed px/frame, rebuild/shrink stats,
-           silhouette metrics, structure_distance inputs, frame-0 PNGs for contact sheets
-  perf     end-to-end CLI wall time (pinned to one core, --preview only) + determinism
-  profile  in-process stage breakdown (pinned to one core)
+Phase 0 numbers (perf, profile) come from the untouched root script bonsai-wall.py. From Phase 1
+the sweep and the summary go through the package and measure the TreeScene IR
+(bonsai_wall.metrics), so V1 and V2 are compared on the same projected 2D strokes.
+
+  sweep    in-process: gif size, palette peak, changed px/frame, fit retries, IR metrics,
+           structure_distance inputs, frame-0 PNGs for contact sheets
+  perf     end-to-end CLI wall time of bonsai-wall.py (one core, --preview only) + determinism
+  profile  in-process stage breakdown of bonsai-wall.py (one core)
   sheets   contact sheets per species (styles x 6 seeds) from the sweep's PNGs
   summary  docs/baseline/v1_baseline_summary.md from the CSVs
 
@@ -25,8 +28,6 @@ import hashlib
 import importlib.util
 import io
 import itertools
-import json
-import math
 import os
 import statistics
 import subprocess
@@ -40,6 +41,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 V1_PATH = ROOT / "bonsai-wall.py"
 OUT = ROOT / "out" / "baseline"
 DOCS = ROOT / "docs" / "baseline"
@@ -56,30 +58,22 @@ SEEDS_OTHER = (1, 2, 3)
 SHEET_SEEDS = 6
 
 _V1 = None
-CALLS: list = []
 
 
 def v1():
-    """Load V1 unmodified; wrap build_scene only to count grow_scene's retries."""
+    """The untouched root script, imported (Phase 0 reference for perf and profile)."""
     global _V1
     if _V1 is None:
         spec = importlib.util.spec_from_file_location("bw_v1", V1_PATH)
         m = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(m)
-        orig = m.build_scene
-
-        def counted(seed, W, H, look, xfrac=0.5, shrink=1.0, shift=0.0):
-            CALLS.append((shrink, shift))
-            return orig(seed, W, H, look, xfrac, shrink, shift)
-
-        m.build_scene = counted
         _V1 = m
     return _V1
 
 
 def combos():
-    m = v1()
-    return [(sp, st) for sp in sorted(m.SPECIES) for st in sorted(m.SPECIES[sp]["styles"])]
+    from bonsai_wall.look import SPECIES
+    return [(sp, st) for sp in sorted(SPECIES) for st in sorted(SPECIES[sp]["styles"])]
 
 
 def art_size(m, size):
@@ -89,108 +83,19 @@ def art_size(m, size):
 
 
 # --------------------------------------------------------------------------
-# silhouette + metrics (V1 is 2D: derived from pad sprites and the static layer)
-# --------------------------------------------------------------------------
-GRID_W, GRID_H = 192, 144        # covers x in [xb-H, xb+H], y in [yb-H, yb+0.5H]
-ANG_BINS = 24
-
-
-def tree_masks(S):
-    W, H = S.W, S.H
-    fol = np.zeros((H, W), bool)
-    for p in S.pads_back + S.pads_front:
-        a = np.asarray(p.sprites[0].getchannel("A")) > 0
-        x0, y0 = p.ox, p.oy
-        xs0, ys0 = max(0, x0), max(0, y0)
-        xs1, ys1 = min(W, x0 + a.shape[1]), min(H, y0 + a.shape[0])
-        if xs1 > xs0 and ys1 > ys0:
-            fol[ys0:ys1, xs0:xs1] |= a[ys0 - y0:ys1 - y0, xs0 - x0:xs1 - x0]
-    wood = np.asarray(S.mid[1]) > 0
-    ycut = int(S.soil_top(S.xc) - 4 * S.k)     # drop soil, moss, rock, pot, stand
-    wood = wood.copy()
-    wood[ycut:, :] = False
-    for (x, y) in S.back_limbs:
-        if 0 <= x < W and 0 <= y < H and y < ycut:
-            wood[y, x] = True
-    return fol, wood
-
-
-def hull_area(pts):
-    pts = sorted(set(pts))
-    if len(pts) < 3:
-        return 0.0
-
-    def half(seq):
-        h = []
-        for p in seq:
-            while len(h) >= 2 and ((h[-1][0] - h[-2][0]) * (p[1] - h[-2][1])
-                                   - (h[-1][1] - h[-2][1]) * (p[0] - h[-2][0])) <= 0:
-                h.pop()
-            h.append(p)
-        return h
-
-    lo, up = half(pts), half(reversed(pts))
-    poly = lo[:-1] + up[:-1]
-    a = 0.0
-    for i in range(len(poly)):
-        x1, y1 = poly[i]
-        x2, y2 = poly[(i + 1) % len(poly)]
-        a += x1 * y2 - x2 * y1
-    return abs(a) / 2
-
-
-def silhouette_metrics(S):
-    fol, wood = tree_masks(S)
-    tree = fol | wood
-    ys, xs = np.nonzero(tree)
-    if not len(ys):
-        return None
-    top, xb, yb = int(ys.min()), S.xb, S.yb
-    Ht = max(1.0, yb - top)
-    apex_x = float(xs[ys <= top + 2].mean())
-    fy = np.nonzero(fol)[0]
-    cent = (yb - float(fy.mean())) / Ht if len(fy) else float("nan")
-    pts = []
-    for y in range(top, int(ys.max()) + 1):
-        row = np.nonzero(tree[y])[0]
-        if len(row):
-            pts += [(int(row[0]), y), (int(row[-1]), y)]
-    ha = hull_area(pts)
-    neg = (ha - float(tree.sum())) / ha if ha > 0 else float("nan")
-    # height-normalised silhouette grid
-    x0, x1, y0, y1 = xb - Ht, xb + Ht, yb - Ht, yb + 0.5 * Ht
-    box = (round(x0), round(y0), round(x1), round(y1))     # may leave the canvas: filled with 0
-    im = Image.fromarray((tree * 255).astype(np.uint8)).crop(box).resize(
-        (GRID_W, GRID_H), Image.BOX)
-    grid = np.asarray(im) > 127
-    # pad-centre angle histogram (V1 has no explicit primaries; pads are the proxy)
-    hist = np.zeros(ANG_BINS)
-    for p in S.pads_back + S.pads_front:
-        ang = math.atan2(p.cx - xb, yb - p.cy)
-        b = min(ANG_BINS - 1, int((ang + math.pi) / math.tau * ANG_BINS))
-        hist[b] += p.rx * p.rx
-    hist = hist / hist.sum() if hist.sum() else hist
-    return dict(
-        tree_h=Ht, width_over_h=float(xs.max() - xs.min() + 1) / Ht,
-        lean_deg=abs(math.degrees(math.atan2(apex_x - xb, yb - top))),
-        apex_offset=(apex_x - xb) / Ht, foliage_centroid_h=cent, negative_space=neg,
-        n_pads=len(S.pads_back) + len(S.pads_front)), grid, hist
-
-
-# --------------------------------------------------------------------------
-# sweep worker
+# sweep worker (package, IR metrics)
 # --------------------------------------------------------------------------
 def run_one(task):
+    from bonsai_wall import animate, metrics, output, pipeline
+    from bonsai_wall.look import choose_look
     size, sp, st, seed, save_png = task
-    m = v1()
-    w, h, s, cw, ch = art_size(m, size)
-    look = m.choose_look(seed, "random", "auto", "studio", "auto", None, None, sp)
+    w, h, s, cw, ch = art_size(output, size)
+    look = choose_look(seed, "random", "auto", "studio", "auto", None, None, sp)
     look["style"] = st
-    CALLS.clear()
     t0 = time.perf_counter()
-    S = m.grow_scene(seed, cw, ch, look, 0.5)
+    S = pipeline.grow_scene(seed, cw, ch, look, 0.5)
     t1 = time.perf_counter()
-    frames = m.render_frames(S, 10.0, 12.0)
+    frames = animate.render_frames(S, 10.0, 12.0)
     t2 = time.perf_counter()
     buf = io.BytesIO()
     frames[0].save(buf, format="GIF", save_all=True, append_images=frames[1:], loop=0,
@@ -198,29 +103,28 @@ def run_one(task):
     t3 = time.perf_counter()
     arr = np.stack([np.asarray(f) for f in frames])
     changed = (arr != np.roll(arr, 1, axis=0)).reshape(len(frames), -1).sum(1)
+    lay = S.layout
     row = dict(size=size, art_w=cw, art_h=ch, scale=s, species=sp, style=st, seed=seed,
                leaf=look["leaf"], pot=look["pot"], gif_bytes=buf.tell(),
                palette_peak=len(S.pal), n_frames=len(frames),
                changed_mean=float(changed.mean()), changed_p95=float(np.percentile(changed, 95)),
-               changed_max=int(changed.max()), builds=len(CALLS),
-               final_shrink=CALLS[-1][0], final_shift=CALLS[-1][1],
-               margin_left=S.xmin, margin_right=cw - 1 - S.xmax, crown_top=S.crown_top,
-               pot_w=S.pot_w, stand_w=S.stand_w, rim_top=S.rim_top, stand_top=S.stand_top,
-               design_ht=S.Ht, xb=S.xb, yb=S.yb, xc=S.xc, caliper=S.caliper, mode=S.mode,
-               t_grow=t1 - t0, t_render=t2 - t1, t_gif=t3 - t2)
-    sm = silhouette_metrics(S)
-    grid = hist = None
-    if sm:
-        met, grid, hist = sm
-        row.update(met)
+               changed_max=int(changed.max()), builds=S.fit[0], final_shrink=S.fit[1],
+               final_shift=S.fit[2], margin_left=S.xmin, margin_right=cw - 1 - S.xmax,
+               crown_top=S.crown_top, pot_w=lay.pot_w, stand_w=lay.stand_w, rim_top=lay.rim_top,
+               stand_top=lay.stand_top, design_ht=lay.Ht, xb=lay.xb, yb=lay.yb, xc=lay.xc,
+               pot_style=lay.pot_style, stand_style=lay.stand_style, caliper=S.caliper,
+               mode=S.mode, t_grow=t1 - t0, t_render=t2 - t1, t_gif=t3 - t2)
+    met, grid, hist = metrics.scene_metrics(S.tree)
+    row.update(met)
     if save_png:
         d = OUT / "frames"
         d.mkdir(parents=True, exist_ok=True)
         frames[0].convert("RGB").save(d / f"{sp}-{st}-{seed}.png")
-    return row, (np.packbits(grid) if grid is not None else None), hist
+    return row, np.packbits(grid), hist
 
 
 def cmd_sweep():
+    from bonsai_wall import metrics
     OUT.mkdir(parents=True, exist_ok=True)
     DOCS.mkdir(parents=True, exist_ok=True)
     cs = combos()
@@ -232,17 +136,13 @@ def cmd_sweep():
     with Pool(max(1, (os.cpu_count() or 2) - 2)) as pool:
         for i, (row, packed, hist) in enumerate(pool.imap(run_one, tasks, chunksize=2)):
             rows.append(row)
-            if packed is not None and row["size"] == SIZE_MAIN:
+            if row["size"] == SIZE_MAIN:
                 key = f'{row["species"]}|{row["style"]}|{row["seed"]}'
                 sils[key + "|g"] = packed
                 sils[key + "|h"] = hist
             if i % 100 == 0:
                 print(f"  {i}/{len(tasks)}  {time.time() - t0:.0f}s", flush=True)
     keys = list(rows[0])
-    for r in rows:
-        for k in r:
-            if k not in keys:
-                keys.append(k)
     with open(SWEEP_CSV, "w", newline="") as f:
         wr = csv.DictWriter(f, fieldnames=keys)
         wr.writeheader()
@@ -361,36 +261,53 @@ def read(p):
         return list(csv.DictReader(f))
 
 
-def tv(a, b):
-    return 0.5 * float(np.abs(a - b).sum())
+def fl(r, k):
+    return float(r[k])
 
 
-def structure_distance(g1, h1, g2, h2):
-    inter = np.logical_and(g1, g2).sum()
-    union = np.logical_or(g1, g2).sum()
-    iou = inter / union if union else 1.0
-    return 0.5 * ((1 - iou) + tv(h1, h2))
+def med(rs, k):
+    v = [fl(r, k) for r in rs if r[k] not in ("", "nan") and fl(r, k) == fl(r, k)]
+    return statistics.median(v) if v else float("nan")
+
+
+def load_sils():
+    from bonsai_wall import metrics
+    z = np.load(SILS)
+    out = {}
+    for sp, st in combos():
+        items = []
+        for sd in SEEDS_MAIN:
+            k = f"{sp}|{st}|{sd}"
+            g = np.unpackbits(z[k + "|g"])[:metrics.GRID_W * metrics.GRID_H].astype(bool) \
+                .reshape(metrics.GRID_H, metrics.GRID_W)
+            items.append((g, z[k + "|h"]))
+        out[(sp, st)] = items
+    return out
 
 
 def cmd_summary():
+    from bonsai_wall import metrics
     sw = read(SWEEP_CSV)
     main = [r for r in sw if r["size"] == SIZE_MAIN]
-    z = np.load(SILS)
+    cs = combos()
     L = []
     A = L.append
     A("# V1 baseline (this machine)\n")
     A("Generated by `tools/baseline_v1.py summary` from `v1_sweep.csv`, `v1_perf.csv`, "
-      "`v1_profile.csv`. V1 is imported unmodified; every CLI run uses `--preview`.\n")
+      "`v1_profile.csv`. Timing and determinism rows run the untouched `bonsai-wall.py`; the sweep, "
+      "silhouette, named-miss, layout and structure-distance rows are measured from the V1 "
+      "`TreeScene` IR (`bonsai_wall.metrics`) through the package, whose frames are byte-identical "
+      "to the script (`tests/test_goldens.py`). Every CLI run uses `--preview`.\n")
     A(f"Sweep: {len(sw)} renders ({len(main)} at {SIZE_MAIN} = 640x360 art, "
-      f"{len(sw) - len(main)} at other screen shapes), {len(combos())} species x style combos "
+      f"{len(sw) - len(main)} at other screen shapes), {len(cs)} species x style combos "
       f"with weight > 0.\n")
 
     perf = read(PERF_CSV)
-    p4 = [float(r["wall_s"]) for r in perf if r["size"] == SIZE_4K]
+    p4 = [fl(r, "wall_s") for r in perf if r["size"] == SIZE_4K]
     A("## End-to-end CLI time, 1 core (`taskset -c 0`), `--preview`\n")
     A("| size | runs | p50 s | p95 s | max s |\n| --- | --- | --- | --- | --- |")
     for sz in (SIZE_4K,) + SIZES_OTHER:
-        v = [float(r["wall_s"]) for r in perf if r["size"] == sz]
+        v = [fl(r, "wall_s") for r in perf if r["size"] == sz]
         A(f"| {sz} | {len(v)} | {pct(v, 50):.2f} | {pct(v, 95):.2f} | {max(v):.2f} |")
     det = [r for r in perf if r["rep"] == "1"]
     same = sum(r["identical_to_rep0"] == "True" for r in det)
@@ -398,115 +315,205 @@ def cmd_summary():
     A(f"V2 budget (4K): p50 <= 4 s, p95 <= 8 s. V1 uses {pct(p4, 50):.2f} / {pct(p4, 95):.2f} s.\n")
 
     pr = read(PROFILE_CSV)
-    A("## Stage breakdown at 4K (in-process, 1 core), mean over "
-      f"{len(pr)} runs\n")
+    A(f"## Stage breakdown at 4K (in-process, 1 core), mean over {len(pr)} runs\n")
     A("| stage | mean s | p95 s |\n| --- | --- | --- |")
     for k, nm in (("grow_s", "grow_scene (incl. retries, pad sprites, bg, palette)"),
                   ("frames_s", "render_frames (120 frames)"), ("gif_s", "GIF encode"),
                   ("pngs_s", "still + theme + preview PNG"), ("total_s", "total")):
-        v = [float(r[k]) for r in pr]
+        v = [fl(r, k) for r in pr]
         A(f"| {nm} | {statistics.mean(v):.2f} | {pct(v, 95):.2f} |")
 
-    g = [int(r["gif_bytes"]) for r in main]
-    cm = [float(r["changed_mean"]) for r in main]
-    cp = [float(r["changed_p95"]) for r in main]
-    pk = [int(r["palette_peak"]) for r in main]
+    g = [fl(r, "gif_bytes") for r in main]
+    cm = [fl(r, "changed_mean") for r in main]
+    cp = [fl(r, "changed_p95") for r in main]
+    pk = [fl(r, "palette_peak") for r in main]
     A("\n## Output size, palette, changed pixels (16:9, 640x360 art)\n")
     A("| metric | p5 | p50 | p95 | max | V2 budget |\n| --- | --- | --- | --- | --- | --- |")
-    A(f"| GIF bytes | {pct(g, 5):.0f} | {pct(g, 50):.0f} | {pct(g, 95):.0f} | {max(g)} | "
+    A(f"| GIF bytes | {pct(g, 5):.0f} | {pct(g, 50):.0f} | {pct(g, 95):.0f} | {max(g):.0f} | "
       f"<= V1 + 25% (p50 {pct(g, 50) * 1.25:.0f}, p95 {pct(g, 95) * 1.25:.0f}) |")
     A(f"| changed px / frame (mean) | {pct(cm, 5):.0f} | {pct(cm, 50):.0f} | {pct(cm, 95):.0f} | "
       f"{max(cm):.0f} | <= V1 + 25% (p50 {pct(cm, 50) * 1.25:.0f}) |")
     A(f"| changed px / frame (p95 frame) | {pct(cp, 5):.0f} | {pct(cp, 50):.0f} | "
       f"{pct(cp, 95):.0f} | {max(cp):.0f} | |")
-    A(f"| palette peak | {pct(pk, 5):.0f} | {pct(pk, 50):.0f} | {pct(pk, 95):.0f} | {max(pk)} | "
+    A(f"| palette peak | {pct(pk, 5):.0f} | {pct(pk, 50):.0f} | {pct(pk, 95):.0f} | {max(pk):.0f} | "
       f"<= 255 |")
 
     A("\n## Fit retries (V1 narrows/slides the composition after building)\n")
     multi = [r for r in sw if int(r["builds"]) > 1]
-    shrunk = [r for r in sw if float(r["final_shrink"]) < 0.999]
-    A(f"- {len(multi)}/{len(sw)} renders needed more than one `build_scene` pass "
+    shrunk = [r for r in sw if fl(r, "final_shrink") < 0.999]
+    A(f"- {len(multi)}/{len(sw)} renders needed more than one build pass "
       f"({100 * len(multi) / len(sw):.1f}%); {len(shrunk)} ended with shrink < 1 "
       f"(V1 rescales the design to fit; V2 must not).")
     by = {}
     for r in multi:
-        by.setdefault((r["species"], r["style"]), 0)
-        by[(r["species"], r["style"])] += 1
+        by[(r["species"], r["style"])] = by.get((r["species"], r["style"]), 0) + 1
     if by:
         top = sorted(by.items(), key=lambda kv: -kv[1])[:8]
         A("- Most affected combos: " + ", ".join(f"{a}/{b} x{n}" for (a, b), n in top))
-    tight = [r for r in sw if min(int(r["margin_left"]), int(r["margin_right"])) < 2]
+    tight = [r for r in sw if min(fl(r, "margin_left"), fl(r, "margin_right")) < 2]
     A(f"- Renders with < 2 art px side margin after fitting: {len(tight)}.")
 
-    A("\n## Silhouette metrics per combo (front view, V1 2D; median over seeds 1-30)\n")
-    A("`lean_deg`, `apex_offset`, `foliage_centroid_h`, `negative_space`, `width/H` computed from "
-      "pad sprites + static layer above the soil. Approximate: V1 keeps no skeleton "
-      "(see `docs/v1_inventory.md`).\n")
-    A("| species | style | n | H px | W/H | lean deg | apex off | fol. centroid | neg. space | "
-      "pads | GIF KB |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
-    for sp, st in combos():
-        rs = [r for r in main if r["species"] == sp and r["style"] == st and r.get("tree_h")]
+    A("\n## IR metrics per combo (front view, median over seeds 1-30)\n")
+    A("From the projected strokes (limbs as discs) and pad extents (half-ellipses), not sprites. "
+      "`inner open` = share of the inner crown core not covered by foliage. `lean` is meaningless "
+      "for forest and clump (several trunks).\n")
+    A("| species | style | H px | W/H | lean deg | apex off | fol. centroid | neg. space | taper | "
+      "apex ratio | bends | inner open | pads | GIF KB |\n"
+      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    for sp, st in cs:
+        rs = [r for r in main if r["species"] == sp and r["style"] == st]
+        A(f"| {sp} | {st} | {med(rs, 'tree_h'):.0f} | {med(rs, 'width_over_h'):.2f} | "
+          f"{med(rs, 'lean_deg'):.1f} | {med(rs, 'apex_offset'):+.3f} | "
+          f"{med(rs, 'foliage_centroid_h'):.2f} | {med(rs, 'negative_space'):.2f} | "
+          f"{med(rs, 'taper'):.1f} | {med(rs, 'apex_ratio'):.2f} | {med(rs, 'bends'):.0f} | "
+          f"{med(rs, 'inner_open'):.2f} | {med(rs, 'n_pads'):.0f} | "
+          f"{med(rs, 'gif_bytes') / 1024:.0f} |")
 
-        def med(k):
-            vals = [float(r[k]) for r in rs if r[k] not in ("", "nan")]
-            return statistics.median(vals) if vals else float("nan")
-        A(f"| {sp} | {st} | {len(rs)} | {med('tree_h'):.0f} | {med('width_over_h'):.2f} | "
-          f"{med('lean_deg'):.1f} | {med('apex_offset'):+.3f} | {med('foliage_centroid_h'):.2f} | "
-          f"{med('negative_space'):.2f} | {med('n_pads'):.0f} | "
-          f"{med('gif_bytes') / 1024:.0f} |")
+    styles = sorted({st for _, st in cs})
+    A("\n## V1's named misses, measured from the IR\n")
+    A("Per style, pooled over species (all 30 seeds each). These are baseline values for the V2 style "
+      "bands; they are not pass/fail.\n")
+    A("### Windswept reads as slanting\n")
+    A("| style | n | lean deg p10 / p50 / p90 | apex offset p50 | leeward lean (|offset| p50) |\n"
+      "| --- | --- | --- | --- | --- |")
+    for st in ("slant", "fukinagashi"):
+        rs = [r for r in main if r["style"] == st]
+        ln = [fl(r, "lean_deg") for r in rs]
+        A(f"| {st} | {len(rs)} | {pct(ln, 10):.1f} / {pct(ln, 50):.1f} / {pct(ln, 90):.1f} | "
+          f"{med(rs, 'apex_offset'):+.3f} | {statistics.median(abs(fl(r, 'apex_offset')) for r in rs):.3f} |")
+    A("\nBands for windswept rest on these two (lean is a sanity check only): `leeward` = share of "
+      "foliage area on the side the crown leans to; `window60` = largest share of length-weighted "
+      "primary angles inside any 60 degree window.\n")
+    A("| style | n | leeward p10 / p50 / p90 | window60 p10 / p50 / p90 |\n| --- | --- | --- | --- |")
+    for st in ("slant", "fukinagashi", "moyogi"):
+        rs = [r for r in main if r["style"] == st]
+        lw = [fl(r, "leeward") for r in rs]
+        w6 = [fl(r, "primary_window_60") for r in rs]
+        A(f"| {st} | {len(rs)} | {pct(lw, 10):.2f} / {pct(lw, 50):.2f} / {pct(lw, 90):.2f} | "
+          f"{pct(w6, 10):.2f} / {pct(w6, 50):.2f} / {pct(w6, 90):.2f} |")
+    A("\n### Corkscrew trunks\n")
+    A("Main trunk only (`strokes[0]`). `bends` = lateral lobes > 2 px off the base-apex chord; `amp / r` = "
+      "mean lobe amplitude over the trunk base radius (how far the trunk swings compared with its own "
+      "thickness, which is what makes a slender literati trunk read as a corkscrew); `H / base D` = tree "
+      "height over trunk base diameter (spec bunjin band: >= 12); turns are measured over 4 px steps.\n")
+    A("| style | n | bends p50 / p90 | bends per 100 px p50 | amp / r p50 / p90 | H / base D p50 | "
+      "max turn deg p50 / p90 | twist deg per 100 px p50 / p90 |\n| --- | --- | --- | --- | --- | --- | --- | --- |")
+    for st in styles:
+        rs = [r for r in main if r["style"] == st]
+        b_ = [fl(r, "bends") for r in rs]
+        mt = [fl(r, "max_turn_deg") for r in rs]
+        tw = [fl(r, "twist_deg_per_100px") for r in rs]
+        ao = [fl(r, "bend_amp_over_r") for r in rs]
+        A(f"| {st} | {len(rs)} | {pct(b_, 50):.0f} / {pct(b_, 90):.0f} | "
+          f"{med(rs, 'bends_per_100px'):.2f} | {pct(ao, 50):.1f} / {pct(ao, 90):.1f} | "
+          f"{med(rs, 'height_over_base_d'):.1f} | {pct(mt, 50):.1f} / {pct(mt, 90):.1f} | "
+          f"{pct(tw, 50):.0f} / {pct(tw, 90):.0f} |")
+    A("\nBroom's `strokes[0]` ends at the fork (0.3 H), so its taper and apex columns below describe "
+      "the lower trunk only.\n")
+    A("\n### Thick apex and taper (trunk radius at the tip over radius at 0.05 H; taper = r(0.05 H) / r(0.7 H))\n")
+    A("| style | n | tip radius px p50 / p90 | apex ratio p50 / p90 | taper p10 / p50 | taper < 2.0 |\n"
+      "| --- | --- | --- | --- | --- | --- |")
+    for st in styles:
+        rs = [r for r in main if r["style"] == st]
+        tr = [fl(r, "trunk_r_tip") for r in rs]
+        ar = [fl(r, "apex_ratio") for r in rs]
+        tp = [fl(r, "taper") for r in rs]
+        A(f"| {st} | {len(rs)} | {pct(tr, 50):.1f} / {pct(tr, 90):.1f} | {pct(ar, 50):.2f} / "
+          f"{pct(ar, 90):.2f} | {pct(tp, 10):.1f} / {pct(tp, 50):.1f} | "
+          f"{sum(t_ < 2.0 for t_ in tp)}/{len(tp)} |")
+    A("\n### Apex foliage (width of the topmost pad)\n")
+    A("| style | n | apex pad W / crown W p50 / p90 | apex pad W / median pad W p50 / p90 |\n"
+      "| --- | --- | --- | --- |")
+    for st in styles:
+        rs = [r for r in main if r["style"] == st]
+        c1 = [fl(r, "apex_pad_w_over_crown") for r in rs]
+        c2 = [fl(r, "apex_pad_w_over_median") for r in rs]
+        A(f"| {st} | {len(rs)} | {pct(c1, 50):.2f} / {pct(c1, 90):.2f} | {pct(c2, 50):.2f} / {pct(c2, 90):.2f} |")
+    A("\n### Inner thinning (foliage coverage of the inner core vs the outer shell, pad extents)\n")
+    A("| species | n | core covered p50 | shell covered p50 | core / shell p50 |\n"
+      "| --- | --- | --- | --- | --- |")
+    for sp in sorted({sp for sp, _ in cs}):
+        rs = [r for r in main if r["species"] == sp and r["inner_cover"] not in ("", "nan")]
+        ratio = [fl(r, "inner_cover") / fl(r, "shell_cover") for r in rs if fl(r, "shell_cover") > 0]
+        A(f"| {sp} | {len(rs)} | {med(rs, 'inner_cover'):.2f} | {med(rs, 'shell_cover'):.2f} | "
+          f"{statistics.median(ratio):.2f} |")
+    A("\n### Cascade vs stand and canvas (semi-cascade, and the same measures for every style)\n")
+    A("`stand clear` = stand top row minus lowest foliage or branch point (main trunk excluded); "
+      "`canvas clear` = rows between the lowest point and the canvas bottom; overlap = tree pixels "
+      "at or below the stand top inside the stand's width.\n")
+    A("| scope | n | stand clear px min / p10 / p50 | canvas clear px min / p50 | "
+      "stand overlap > 0 | foliage inside pot rect > 0 |\n| --- | --- | --- | --- | --- | --- |")
+    for label, rs in (("hankengai (pinus, juniperus)", [r for r in main if r["style"] == "hankengai"]),
+                      ("all other styles", [r for r in main if r["style"] != "hankengai"])):
+        sc = [fl(r, "stand_clear") for r in rs]
+        cc = [fl(r, "canvas_clear") for r in rs]
+        A(f"| {label} | {len(rs)} | {min(sc):.1f} / {pct(sc, 10):.1f} / {pct(sc, 50):.1f} | "
+          f"{min(cc):.1f} / {pct(cc, 50):.1f} | {sum(fl(r, 'stand_overlap_px') > 0 for r in rs)} | "
+          f"{sum(fl(r, 'pad_in_pot_px') > 0 for r in rs)} |")
 
     A("\n## Layout the tree was fitted to (median over seeds 1-30, art px at 640x360)\n")
-    A("V1 sizes the pot from the crown width; V2 needs this as an input (DEVIATIONS D4).\n")
-    A("| species | style | design H | pot W | pot W / design H | stand W | rim_top | trunk base y |"
-      "\n| --- | --- | --- | --- | --- | --- | --- | --- |")
-    for sp, st in combos():
+    A("V1 sizes the pot from the crown width, so `pot W / crown W` is a V1 design range; V2 gets the pot "
+      "from the caliper class before the crown exists (DEVIATIONS D2/D4). `crown W` is the width of "
+      "the projected strokes and pads.\n")
+    A("| species | style | design H | pot W | pot W / design H | pot W / crown W | stand W | "
+      "rim_top | trunk base y |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    for sp, st in cs:
         rs = [r for r in main if r["species"] == sp and r["style"] == st]
-
-        def med2(f):
-            return statistics.median(f(r) for r in rs)
-        A(f"| {sp} | {st} | {med2(lambda r: float(r['design_ht'])):.0f} | "
-          f"{med2(lambda r: float(r['pot_w'])):.0f} | "
-          f"{med2(lambda r: float(r['pot_w']) / float(r['design_ht'])):.2f} | "
-          f"{med2(lambda r: float(r['stand_w'])):.0f} | "
-          f"{med2(lambda r: float(r['rim_top'])):.0f} | {med2(lambda r: float(r['yb'])):.0f} |")
+        A(f"| {sp} | {st} | {med(rs, 'design_ht'):.0f} | {med(rs, 'pot_w'):.0f} | "
+          f"{statistics.median(fl(r, 'pot_w') / fl(r, 'design_ht') for r in rs):.2f} | "
+          f"{statistics.median(fl(r, 'pot_w') / fl(r, 'crown_w') for r in rs):.2f} | "
+          f"{med(rs, 'stand_w'):.0f} | {med(rs, 'rim_top'):.0f} | {med(rs, 'yb'):.0f} |")
+    A("\nV1 range by style, all species and seeds (min / p10 / p50 / p90 / max):\n")
+    A("| style | n | pot W / design H | pot W / crown W |\n| --- | --- | --- | --- |")
+    for st in styles:
+        rs = [r for r in main if r["style"] == st]
+        a1 = [fl(r, "pot_w") / fl(r, "design_ht") for r in rs]
+        a2 = [fl(r, "pot_w") / fl(r, "crown_w") for r in rs]
+        f5 = lambda v: " / ".join(f"{x:.2f}" for x in (min(v), pct(v, 10), pct(v, 50), pct(v, 90), max(v)))
+        A(f"| {st} | {len(rs)} | {f5(a1)} | {f5(a2)} |")
+    a1 = [fl(r, "pot_w") / fl(r, "design_ht") for r in main]
+    a2 = [fl(r, "pot_w") / fl(r, "crown_w") for r in main]
+    A(f"| all | {len(main)} | {f5(a1)} | {f5(a2)} |")
 
     A("\n## structure_distance baseline (median pairwise, seeds 1-30)\n")
-    A("Proxy definition (V1 has no 3D skeleton): mean of (1 - IoU of height-normalised "
-      "silhouettes) and total-variation distance of the area-weighted pad-centre angle "
-      "histogram (24 bins).\n")
-    A("`raw` is the spec's definition. V1 mirrors each tree left or right at random, so `raw` "
-      "counts a mirrored copy of the same tree as different, which inflates asymmetric styles "
-      "(a 1.5x target above 1.0 is unreachable). `canonical` first flips each tree so its "
-      "silhouette mass lies on the +x side, then applies the same formula. "
-      "DEVIATIONS D8 proposes `canonical` as the variety test.\n")
-    A("| species | style | raw median | canonical median | canonical p10 | canonical p90 | "
-      "1.5x canonical target |\n| --- | --- | --- | --- | --- | --- | --- |")
-    allraw, allcan = [], []
-    for sp, st in combos():
-        gs, hs = [], []
-        for sd in SEEDS_MAIN:
-            k = f"{sp}|{st}|{sd}"
-            if k + "|g" in z.files:
-                gs.append(np.unpackbits(z[k + "|g"])[:GRID_W * GRID_H].astype(bool)
-                          .reshape(GRID_H, GRID_W))
-                hs.append(z[k + "|h"])
-        cg, ch_ = [], []
-        for g_, h_ in zip(gs, hs):
-            cols = np.nonzero(g_)[1]
-            if len(cols) and cols.mean() < (GRID_W - 1) / 2 - 0.5:
-                g_, h_ = g_[:, ::-1], h_[::-1]
-            cg.append(g_)
-            ch_.append(h_)
-        pairs = list(itertools.combinations(range(len(gs)), 2))
-        raw = [structure_distance(gs[i], hs[i], gs[j], hs[j]) for i, j in pairs]
-        can = [structure_distance(cg[i], ch_[i], cg[j], ch_[j]) for i, j in pairs]
-        allraw.append(statistics.median(raw))
-        allcan.append(statistics.median(can))
-        A(f"| {sp} | {st} | {allraw[-1]:.3f} | {allcan[-1]:.3f} | {pct(can, 10):.3f} | "
-          f"{pct(can, 90):.3f} | {1.5 * allcan[-1]:.3f} |")
-    A(f"\nMedian of combo medians: raw {statistics.median(allraw):.3f} "
-      f"(min {min(allraw):.3f}, max {max(allraw):.3f}); canonical {statistics.median(allcan):.3f} "
-      f"(min {min(allcan):.3f}, max {max(allcan):.3f}).\n")
+    A("From the IR: mean of (1 - IoU of height-normalised silhouettes built from strokes and pad "
+      "extents) and the total-variation distance of the length-weighted primary-branch angle histogram "
+      "(24 bins; primaries are live order-1 strokes).\n")
+    A("`raw` is the spec's definition. V1 mirrors each tree left or right at random, so `raw` counts a "
+      "mirrored copy of the same tree as different. `canonical` flips each tree so its silhouette mass "
+      "lies on the +x side first (DEVIATIONS D8, approved) and is the variety test.\n")
+    A("**Target cap.** The target is 1.5 x V1's canonical median, capped at the *ceiling*: the median "
+      "canonical distance between this combo's trees and the trees of the other styles of the same "
+      "species. Variety inside a style must not exceed the distance between styles, or trees stop "
+      "reading as that style. If V1 is already at or above the ceiling the target is V1's own median "
+      "(no regression).\n")
+    sils = load_sils()
+    canon = {c: [metrics.canonical(g_, h_) for g_, h_ in items] for c, items in sils.items()}
+    rows_t = []
+    for sp, st in cs:
+        own = canon[(sp, st)]
+        pairs = list(itertools.combinations(range(len(own)), 2))
+        raw = [metrics.structure_distance(*sils[(sp, st)][i], *sils[(sp, st)][j]) for i, j in pairs]
+        can = [metrics.structure_distance(*own[i], *own[j]) for i, j in pairs]
+        cross = [metrics.structure_distance(*a_, *b_) for st2 in (s for s_sp, s in cs if s_sp == sp and s != st)
+                 for a_ in own for b_ in canon[(sp, st2)]]
+        w, ceil = statistics.median(can), statistics.median(cross)
+        target = min(1.5 * w, max(ceil, w))
+        if 1.5 * w <= ceil:
+            note = "uncapped"
+        elif ceil >= w:
+            note = f"capped: 1.5 x {w:.3f} = {1.5 * w:.3f} exceeds the cross-style median {ceil:.3f}"
+        else:
+            note = (f"V1 already above the cross-style median {ceil:.3f}; target = V1's median")
+        rows_t.append((sp, st, statistics.median(raw), w, ceil, 1.5 * w, target, note))
+    A("| species | style | raw median | canonical median | cross-style ceiling | 1.5 x canonical | "
+      "target | cap justification |\n| --- | --- | --- | --- | --- | --- | --- | --- |")
+    for sp, st, rw, w, ceil, t15, tg, note in rows_t:
+        A(f"| {sp} | {st} | {rw:.3f} | {w:.3f} | {ceil:.3f} | {t15:.3f} | **{tg:.3f}** | {note} |")
+    n_cap = sum(1 for r in rows_t if r[7] != "uncapped")
+    A(f"\n{n_cap} of {len(rows_t)} combos are capped. Median of combo medians: raw "
+      f"{statistics.median(r[2] for r in rows_t):.3f}, canonical "
+      f"{statistics.median(r[3] for r in rows_t):.3f}.\n")
     out = DOCS / "v1_baseline_summary.md"
     out.write_text("\n".join(L) + "\n")
     print(f"wrote {out}")
